@@ -14,15 +14,19 @@
 #include <nanogui/combobox.h>
 
 #include "../include/pipeline/pipeline.h"
+#include "../include/mesh.h"
 
 class Engine : public nanogui::Screen
 {
 private:
   GraphicPipeline gp;
+  Mesh mesh;
 
 public:
   Engine(const char* path) : nanogui::Screen(Eigen::Vector2i(960, 540), "NanoGUI Test")
   {
+    //Load model
+    mesh.load_file( std::string(path) );
   }
 
   virtual void draw(NVGcontext *ctx)

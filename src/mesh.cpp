@@ -1,27 +1,26 @@
 #include "../include/mesh.h"
+#include "../include/matrix.h"
 #include <cstdio>
 #include <iostream>
-#include <glm/gtx/string_cast.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
-void Mesh::transform_to_center(glm::mat4& M)
+void Mesh::transform_to_center(mat4& M)
 {
   //compute bounding box for this mesh
-  glm::vec3 min, max;
+  vec3 min, max;
   for(int i = 0; i < mPos.cols(); ++i)
   {
     Eigen::Vector3f p = mPos.col(i);
     for(int j = 0; j < 3; ++j)
     {
-      min[j] = std::min( min[j], p(j) );
-      max[j] = std::max( max[j], p(j) );
+      min(j) = std::min( min(j), p(j) );
+      max(j) = std::max( max(j), p(j) );
     }
   }
 
   //compute center of the bounding box.
   //this will be used to calculate the
   //translation to the center.
-  glm::vec3 center = (min+max)*0.5f;
+  vec3 center = (min+max)*0.5f;
 
   //compute translation from the center to
   //the midpoint in the Z axis between the
@@ -35,16 +34,24 @@ void Mesh::transform_to_center(glm::mat4& M)
   // - near = 1
   // - far = 10
   // - FoV = 45°
-  glm::mat4 to_origin = glm::translate(glm::mat4(1.0f), glm::vec3(-center.x,
-                                                                  -center.y,
-                                                                  -center.z));
+  mat4 to_origin( vec4(1.0f, 0.0f, 0.0f, 0.0f),
+                  vec4(0.0f, 1.0f, 0.0f, 0.0f),
+                  vec4(0.0f, 0.0f, 1.0f, 0.0f),
+                  vec4(-center(0), -center(1), -center(2), 1.0f));
 
-  glm::vec4 centered_max = M*glm::vec4(max, 1.0f);
-  float half_frustrum = 1.0f; //Near x tan(45)
-  glm::mat4 scale = glm::scale(glm::mat4(1.0f),
-                               glm::vec3(half_frustrum/centered_max.x));
+  float bb_size_x = max(0) - min(0);
+  float half_frustrum = 1.0f; //NearPlane times tan(45)
+  float s = half_frustrum / bb_size_x;
 
-  glm::mat4 from_origin = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.5f));
+  mat4 scale( vec4(s, 0.0f, 0.0f, 0.0f),
+              vec4(0.0f, s, 0.0f, 0.0f),
+              vec4(0.0f, 0.0f, s, 0.0f),
+              vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+  mat4 from_origin( vec4(1.0f, 0.0f, 0.0f, 0.0f),
+                    vec4(0.0f, 1.0f, 0.0f, 0.0f),
+                    vec4(0.0f, 0.0f, 1.0f, 0.0f),
+                    vec4(0.0f, 0.0f, -5.5f, 0.0f));
 
   //final transformation
   M = from_origin * scale * to_origin;
@@ -52,7 +59,7 @@ void Mesh::transform_to_center(glm::mat4& M)
 
 void Mesh::load_file(const std::string& path)
 {
-  tris.clear(); mats.clear();
+  tris.clear();
   FILE *file = fopen( path.c_str(), "r");
 
   //1. name

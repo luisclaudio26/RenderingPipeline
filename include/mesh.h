@@ -5,6 +5,7 @@
 #include <vector>
 #include <nanogui/glutil.h>
 #include "primitives.h"
+#include "matrix.h"
 
 //the elements of our packed data
 struct Elem
@@ -16,14 +17,9 @@ struct Elem
 
 class Mesh
 {
-private:
-
-  std::vector<Material> mats;
-
 public:
   Eigen::MatrixXf mPos, mNormal, mAmb, mDiff, mSpec, mShininess;
   std::vector<Triangle> tris;
-
 
   Mesh() {}
   Mesh(const std::string& path)
@@ -32,7 +28,7 @@ public:
   }
 
   void load_file(const std::string& path);
-  void transform_to_center(glm::mat4& M);
+  void transform_to_center(mat4& M);
 };
 
 #endif

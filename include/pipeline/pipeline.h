@@ -13,8 +13,9 @@ private:
   std::vector<vec3> normal;
   std::vector<vec2> uv;
 
-  // Uniform matrices
-  mat4 model, view, projection, viewport;
+  // Uniform matrices. Viewport matrix is computed
+  // based on the Framebuffer data received on render()
+  mat4 model, view, projection;
 
 public:
   // After setting the attributes and uniforms,
