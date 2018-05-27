@@ -33,9 +33,40 @@ private:
 public:
   Engine(const char* path) : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test")
   {
-    //Load model
+    // Load model and unpack.
+    // The first version packs mesh data into
+    // Eigen matrices. Although this indeed
+    // makes thing easier, we prefer to make
+    // the code self-contained, so we unpack
+    // things into a plain std::vector.
+    // TODO: Load .obj files
     mesh.load_file( std::string(path) );
+    std::vector<float> mesh_data;
+    int n_tris = mesh.mPos.cols(); //calling mPOs.cols() works?! LULZ?!?!?!?
 
+    for(int i = 0; i < n_tris; ++i)
+    {
+      Eigen::Vector3f p = mesh.mPos.col(i);
+      mesh_data.push_back(p(0));
+      mesh_data.push_back(p(1));
+      mesh_data.push_back(p(2));
+
+      Eigen::Vector3f n = mesh.mNormal.col(i);
+      mesh_data.push_back(n(0));
+      mesh_data.push_back(n(1));
+      mesh_data.push_back(n(2));
+    }
+
+    // ---------------------------------------------
+    // ---------- Upload data to pipeline ----------
+    // ---------------------------------------------
+    gp.upload_data(mesh_data, 6);
+    gp.define_attribute("pos", 3, 0);
+    gp.define_attribute("normal", 3, 3);
+
+    // ----------------------------------
+    // ---------- Framebuffers ----------
+    // ----------------------------------
     // Allocate the texture we'll use to render
     // our final color buffer. Once the screen
     // is resized, we must reallocate this.
@@ -119,9 +150,7 @@ public:
   virtual void drawContents()
   {
     fbo.clearColorBuffer();
-
-    //draw stuff
-  
+    gp.render(fbo);
     GLubyte *color_buffer = fbo.colorBuffer();
 
     //-------------------------------------------------------
