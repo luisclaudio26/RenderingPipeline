@@ -4,8 +4,9 @@
 #include <vector>
 #include <string>
 #include <map>
-#include "framebuffer.h"
 #include "../matrix.h"
+#include "framebuffer.h"
+#include "vertexshader.h"
 
 class GraphicPipeline
 {
@@ -15,14 +16,27 @@ private:
   // manage pointer and interpolation if all attributes
   // have the same type. For the future we should support
   // different types.
-  float *vertex_buffer;
+  // Notice that this array stores only the attributes
+  // and not the 1.0 value we need to later perform
+  // perspective interpolation. Also, vbuffer_in won't
+  // change, as we might need it to perform subsequent
+  // calls to the graphic pipeline to render the same
+  // object without changing its data.
+  const float *vbuffer_in;
+  int vbuffer_in_sz; //number of floats
 
   // Vertex size. The DATA array is comprised of vertex
   // attributes all aligned; vertex_size defines how many
-  // attributes make up a vertex
+  // attributes make up a vertex WITHOUT including the
+  // attribute 1.0 which each vertex should have in order
+  // to properly perform interpolation!
   int vertex_size;
+  int n_vertices;
 
-  // Attributes can be accessed within the vertex_buffer
+  // this is the actual vertex buffer we'll be working in
+  float *vbuffer;
+
+  // Attributes can be accessed within the vbuffer_in
   // by knowing its size and stride. We store this info
   // so it can be accessed later by the shaders
   struct Attribute { int size; int stride; };
@@ -30,6 +44,9 @@ private:
 
   // Uniform matrices
   mat4 model, view, projection, viewport;
+
+  // shaders <3
+  VertexShader vshader;
 
 public:
   GraphicPipeline();
