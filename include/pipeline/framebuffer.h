@@ -17,8 +17,11 @@ private:
   float *depth;
 
 public:
+  Framebuffer();
   Framebuffer(int w, int h);
   ~Framebuffer();
+
+  void resizeBuffer(int w, int h);
 
   int width() const;
   int height() const;
@@ -29,6 +32,11 @@ public:
 
   void clearColorBuffer();
   void clearDepthBuffer();
+
+  GLubyte* colorBuffer()
+  {
+    return reinterpret_cast<GLubyte*>(color);
+  }
 };
 
 #endif

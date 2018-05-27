@@ -12,7 +12,8 @@ include_directories(${OPENGL_INCLUDE_DIR})
 include_directories(3rdparty)
 
 #Source files
-file(GLOB SOURCES "src/*.cpp")
+file(GLOB SOURCES "src/*.cpp"
+                  "src/pipeline/*.cpp")
 
 #Link libraries
 find_package(OpenGL REQUIRED)

@@ -16,18 +16,38 @@
 #include "../include/pipeline/pipeline.h"
 #include "../include/mesh.h"
 
+const int DEFAULT_WIDTH = 960;
+const int DEFAULT_HEIGHT = 540;
+
 class Engine : public nanogui::Screen
 {
 private:
-  nanogui::GLShader shader;
   GraphicPipeline gp;
+  Framebuffer fbo;
   Mesh mesh;
 
+  //display stuff
+  nanogui::GLShader shader;
+  GLuint color_gpu;
+
 public:
-  Engine(const char* path) : nanogui::Screen(Eigen::Vector2i(960, 540), "NanoGUI Test")
+  Engine(const char* path) : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test")
   {
     //Load model
     mesh.load_file( std::string(path) );
+
+    // Allocate the texture we'll use to render
+    // our final color buffer. Once the screen
+    // is resized, we must reallocate this.
+    glGenTextures(1, &color_gpu);
+    glBindTexture(GL_TEXTURE_2D, color_gpu);
+    glTexStorage2D(GL_TEXTURE_2D,
+                    1,
+                    GL_RGBA8,
+                    DEFAULT_WIDTH,
+                    DEFAULT_HEIGHT);
+
+    fbo.resizeBuffer(DEFAULT_WIDTH, DEFAULT_HEIGHT);
 
     //--------------------------------------
     //----------- Shader options -----------
@@ -66,9 +86,8 @@ public:
                   "color = texture(frame, uv_frag);\n"
                 "}");
 
-
-    //this will serve us both as screen coordinates for the quad
-    //AND texture coordinates
+    // upload triangles which we'll use to render the final
+    // image and the corresponding texture coordinates
     Eigen::MatrixXf quad(2, 6);
     quad.col(0)<<-1.0, -1.0;
     quad.col(1)<<+1.0, -1.0;
@@ -99,6 +118,41 @@ public:
 
   virtual void drawContents()
   {
+    fbo.clearColorBuffer();
+
+    //draw stuff
+  
+    GLubyte *color_buffer = fbo.colorBuffer();
+
+    //-------------------------------------------------------
+    //---------------------- DISPLAY ------------------------
+    //-------------------------------------------------------
+    // send to GPU in texture unit 0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, color_gpu);
+
+    //WARNING: be careful with RGB pixel data
+    //as OpenGL expects 4-byte aligned data
+    //https://www.khronos.org/opengl/wiki/Common_Mistakes#Texture_upload_and_pixel_reads
+    glPixelStorei(GL_UNPACK_LSB_FIRST, 0);
+    glTexSubImage2D(GL_TEXTURE_2D,
+                    0, 0, 0,
+                    DEFAULT_WIDTH,
+                    DEFAULT_HEIGHT,
+                    GL_RGBA,
+                    GL_UNSIGNED_BYTE,
+                    color_buffer);
+
+    //WARNING: IF WE DON'T SET THIS IT WON'T WORK!
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    shader.bind();
+    shader.setUniform("frame", 0);
+
+    //draw stuff
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    shader.drawArray(GL_TRIANGLES, 0, 6);
   }
 };
 
