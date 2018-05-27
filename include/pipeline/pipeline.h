@@ -28,13 +28,18 @@ private:
   struct Attribute { int size; int stride; };
   std::map<std::string, Attribute> attribs;
 
-  // Uniform matrices. Viewport matrix is computed
-  // based on the Framebuffer data received on render()
-  mat4 model, view, projection;
+  // Uniform matrices
+  mat4 model, view, projection, viewport;
 
 public:
   GraphicPipeline();
   ~GraphicPipeline();
+
+  // this should be as flexible as the attribute system,
+  // but for simplicity we're gonna store only the main
+  // uniform matrices.
+  void upload_uniform(const mat4& model, const mat4& view,
+                      const mat4& projection, const mat4& viewport);
 
   // upload a set of floats containing all the attributes
   // contiguously defined. This can be slow because we make

@@ -7,7 +7,6 @@ GraphicPipeline::~GraphicPipeline()
   if(vertex_buffer) delete[] vertex_buffer;
 }
 
-
 void GraphicPipeline::upload_data(const std::vector<float>& data, int vertex_size)
 {
   // delete any previous allocated data
@@ -28,6 +27,17 @@ void GraphicPipeline::define_attribute(const std::string& name, int n_floats, in
   a.stride = stride;
 
   attribs[name] = a;
+}
+
+void GraphicPipeline::upload_uniform(const mat4& model,
+                                      const mat4& view,
+                                      const mat4& projection,
+                                      const mat4& viewport)
+{
+  this->model = model;
+  this->view = view;
+  this->projection = projection;
+  this->viewport = viewport;
 }
 
 void GraphicPipeline::render(Framebuffer& target)

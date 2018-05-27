@@ -24,7 +24,8 @@ class Engine : public nanogui::Screen
 private:
   GraphicPipeline gp;
   Framebuffer fbo;
-  Mesh mesh;
+
+  Mesh mesh; mat4 model;
 
   //display stuff
   nanogui::GLShader shader;
@@ -56,6 +57,8 @@ public:
       mesh_data.push_back(n(1));
       mesh_data.push_back(n(2));
     }
+
+    mesh.transform_to_center(model);
 
     // ---------------------------------------------
     // ---------- Upload data to pipeline ----------
@@ -149,8 +152,22 @@ public:
 
   virtual void drawContents()
   {
+    //--------------------------------
+    //----------- RENDERING ----------
+    //--------------------------------
+    //proj and viewport could be precomputed!
+    mat4 view = mat4::view( vec3(0.0f, 0.0f, 0.0f),
+                            vec3(0.0f, 0.0f, -1.0f),
+                            vec3(0.0f, 1.0f, 0.0f) );
+
+    mat4 proj = mat4::perspective(45.0f, 45.0f, 1.0f, 10.0f);
+    mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
+
     fbo.clearColorBuffer();
+
+    gp.upload_uniform(view, proj, model, viewport);
     gp.render(fbo);
+
     GLubyte *color_buffer = fbo.colorBuffer();
 
     //-------------------------------------------------------
