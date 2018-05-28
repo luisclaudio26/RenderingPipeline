@@ -7,6 +7,7 @@
 #include "../matrix.h"
 #include "framebuffer.h"
 #include "vertexshader.h"
+#include "attribute.h"
 
 class GraphicPipeline
 {
@@ -41,7 +42,6 @@ private:
   // Attributes can be accessed within the vbuffer_in
   // by knowing its size and stride. We store this info
   // so it can be accessed later by the shaders
-  struct Attribute { int size; int stride; };
   std::map<std::string, Attribute> attribs;
 
   // Uniform matrices

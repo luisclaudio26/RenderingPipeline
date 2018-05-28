@@ -51,6 +51,7 @@ public:
       mesh_data.push_back(p(0));
       mesh_data.push_back(p(1));
       mesh_data.push_back(p(2));
+      mesh_data.push_back(1.0f);
 
       Eigen::Vector3f n = mesh.mNormal.col(i);
       mesh_data.push_back(n(0));
@@ -63,9 +64,9 @@ public:
     // ---------------------------------------------
     // ---------- Upload data to pipeline ----------
     // ---------------------------------------------
-    gp.upload_data(mesh_data, 6);
-    gp.define_attribute("pos", 3, 0);
-    gp.define_attribute("normal", 3, 3);
+    gp.upload_data(mesh_data, 7);
+    gp.define_attribute("pos", 4, 0);
+    gp.define_attribute("normal", 3, 4);
 
     // ----------------------------------
     // ---------- Framebuffers ----------
@@ -165,7 +166,7 @@ public:
 
     fbo.clearColorBuffer();
 
-    gp.upload_uniform(view, proj, model, viewport);
+    gp.upload_uniform(model, view, proj, viewport);
     gp.render(fbo);
 
     GLubyte *color_buffer = fbo.colorBuffer();
