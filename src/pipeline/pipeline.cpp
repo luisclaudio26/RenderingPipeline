@@ -52,12 +52,12 @@ void GraphicPipeline::upload_uniform(const mat4& model,
   this->viewport = viewport;
 }
 
-void GraphicPipeline::render(Framebuffer& target)
+void GraphicPipeline::render(Framebuffer& render_target)
 {
   // 1. [X] Vertex shader execution
   // 2. [X] Triangle clipping
   // 3. [X] Perspective division
-  // 4. [ ] Triangle culling
+  // 4. [X] Triangle culling
   // 5. [ ] Rasterization (including Fragment shader)
 
   // vertex processing stage. v stores the starting address of a new
@@ -75,8 +75,8 @@ void GraphicPipeline::render(Framebuffer& target)
   }
 
   // triangle clipping
-  int vbuffer_sz = vbuffer_in_sz + n_vertices;
-  int tri_sz = 3*(vertex_size+1);
+  this->vbuffer_sz = vbuffer_in_sz + n_vertices;
+  this->tri_sz = 3*(vertex_size+1);
   int non_clipped = 0;
   for(int t = 0; t < vbuffer_sz; t += tri_sz)
   {
@@ -180,13 +180,429 @@ void GraphicPipeline::render(Framebuffer& target)
   // update vbuffer size
   vbuffer_sz = non_culled;
 
-  printf("%d ---------------\n", vbuffer_sz);
-  for(int i = 0; i < vbuffer_sz; i += vertex_size+1)
-  {
-    float *v = &vbuffer[i];
-    printf("%d - %f %f %f %f %f %f %f \n", i, v[0], v[1], v[2],
-                                          v[3], v[4], v[5], v[6]);
-  }
-  printf("---------------\n");
+  this->rasterization(render_target);
+}
 
+// --------------------------------
+// --------------------------------
+static inline void sub_vertex(const float* lhs, const float* rhs,
+                              float* target, int vertex_sz)
+{
+  for(int i = 0; i < vertex_sz; ++i)
+    target[i] = lhs[i] - rhs[i];
+}
+
+static inline void scalar_vertex(const float* lhs, float k,
+                                  float* target, int vertex_sz)
+{
+  for(int i = 0; i < vertex_sz; ++i)
+    target[i] = lhs[i] * k;
+}
+
+static inline void inc_vertex(float* target, float* inc, int vertex_sz)
+{
+  for(int i = 0; i < vertex_sz; ++i)
+    target[i] += inc[i];
+}
+
+void GraphicPipeline::rasterization(Framebuffer& render_target)
+{
+  #define ROUND(x) ((int)(x + 0.5f))
+  #define SWAP(a,b) { float* aux = b; b = a; a = aux; }
+  #define X(x) (x[0])
+  #define Y(x) (x[1])
+  #define Z(x) (x[2])
+  #define W(x) (x[3])
+
+  for(int t = 0; t < vbuffer_sz; t += tri_sz)
+  {
+    float *v0 = &vbuffer[t + 0*(vertex_size+1)];
+    float *v1 = &vbuffer[t + 1*(vertex_size+1)];
+    float *v2 = &vbuffer[t + 2*(vertex_size+1)];
+
+    //order vertices by y coordinate
+    if( Y(v0) > Y(v1) ) SWAP(v0, v1);
+    if( Y(v0) > Y(v2) ) SWAP(v0, v2);
+    if( Y(v1) > Y(v2) ) SWAP(v1, v2);
+
+    //these dVdy_ variables define how much we must
+    //increment v when increasing one unit in y, so
+    //we can use this to compute the start and end
+    //boundaries for rasterization. Notice that not
+    //only this defines the actual x coordinate of the
+    //fragment in the scanline, but all the other
+    //attributes. Also, notice that y is integer and
+    //thus if we make dy0 = (v1.y-v0.y) steps in y, for intance,
+    //incrementing v0 with dVdy0 at each step, by the end of
+    //the dy steps we'll have:
+    //
+    // v0 + dy0 * dVdy0 = v0 + dy0*(v1-v0)/dy0 = v0 + v1 - v0 = v1
+    //
+    //which is exactly what we want, a linear interpolation
+    //between v0 and v1 with dy0 steps
+    //TODO: Preallocate dVx_dy in the upload_data() routine!
+    float* dV0_dy = new float[vertex_size+1];
+    sub_vertex(v1, v0, dV0_dy, vertex_size+1);
+    scalar_vertex(dV0_dy, 1.0f/(Y(v1)-Y(v0)), dV0_dy, vertex_size+1);
+
+    float* dV1_dy = new float[vertex_size+1];
+    sub_vertex(v2, v0, dV1_dy, vertex_size+1);
+    scalar_vertex(dV1_dy, 1.0f/(Y(v2)-Y(v0)), dV1_dy, vertex_size+1);
+
+    float* dV2_dy = new float[vertex_size+1];
+    sub_vertex(v2, v1, dV2_dy, vertex_size+1);
+    scalar_vertex(dV2_dy, 1.0f/(Y(v2)-Y(v1)), dV2_dy, vertex_size+1);
+
+    float *start, *end;
+    float *dStart_dy, *dEnd_dy;
+
+    //this will tell us whether we should change dStart_dy
+    //or dEnd_dy to the next active edge (dV2_dy) when we
+    //reach halfway the triangle
+    float* next_active_edge;
+
+    //decide start/end edges. If v1 is to the left
+    //side of the edge connecting v0 and v2, then v0v1
+    //is the starting edge and v0v2 is the ending edge;
+    //if v1 is to the right, it is the contrary.
+    //the v0v1 edge will be substituted by the v1v2 edge
+    //when we reach the v1 vertex while scanlining, so we
+    //store which of the start/end edges we should replace
+    //with v1v2.
+    vec3 right_side = vec3(X(v1)-X(v0), Y(v1)-Y(v0), 0.0f).cross(vec3(X(v2)-X(v0), Y(v2)-Y(v0), 0.0f));
+    if( right_side(2) > 0.0f )
+    {
+      dEnd_dy = dV0_dy;
+      dStart_dy = dV1_dy;
+      next_active_edge = dEnd_dy;
+    }
+    else
+    {
+      dEnd_dy = dV1_dy;
+      dStart_dy = dV0_dy;
+      next_active_edge = dStart_dy;
+    }
+
+    //handle flat top triangles
+    if( Y(v0) == Y(v1) )
+    {
+      //switch active edge and update
+      //starting and ending points
+      if( X(v0) < X(v1) )
+      {
+        dEnd_dy = dV2_dy;
+        start = v0; end = v1;
+      }
+      else
+      {
+        dStart_dy = dV2_dy;
+        start = v1; end = v0;
+      }
+    }
+    else start = end = v0;
+
+    //loop over scanlines
+    float *dV_dx = new float[vertex_size+1];  //horizontal increment
+    float *f = new float[vertex_size+1];      //bilinearly interpolated fragment
+    float *frag = new float[vertex_size+1];   //persective interpolated fragment
+
+    for(int y = Y(v0); y <= Y(v2); ++y)
+    {
+      //starting and ending points for scanline rasterization
+      int s = ROUND(X(start)), e = ROUND(X(end));
+
+      // compute horizontal increment dV_dx
+      sub_vertex(end, start, dV_dx, vertex_size+1);
+      scalar_vertex(dV_dx, 1.0f/(e-s), dV_dx, vertex_size+1);
+
+      // initialize the actual fragment
+      memcpy(f, start, (vertex_size+1)*sizeof(float));
+
+      for(int x = s; x <= e; ++x)
+      {
+        //in order to draw only the edges, we skip this
+        //the scanline rasterization in all points but
+        //the extremities. TODO
+        //if(param.draw_mode == GL_LINE && (x != s && x != e)) continue;
+
+        // To better represent what the pipeline does, we should, in the
+        // following order:
+        //
+        // 1) perform early fragment tests at this point (which include
+        // depth buffering, scissor testing and stencil buffering, for
+        // for example), which decide whether this fragment will live
+        // or not. Notice that at this point, a fragment is the set of
+        // attributes interpolated by the rasterizer;
+        //
+        // 2) evaluate fragment shader to compute a pixel sample from the
+        // fragment's attributes;
+        //
+        // 3) perform per-sample operations like alpha
+        // blending using the sample computed in the previous stage;
+        //
+        // It is interesting to notice that, as of version 4.6, the OpenGL
+        // specification calls "per-fragment
+        // operations" both early fragment tests (which MAY be performed
+        // before or after fragment shader evaluation, but executing before
+        // allows us to discard fragments without evaluating them) and
+        // per-sample operations (like like alpha blending, dithering and
+        // sRGB conversions), which MUST be performed after fragment shader
+        // evaluation because we need a pixel sample.
+
+        // Here we mixed things in the same code for simplicity
+        if( Z(f) < render_target.getDepthBuffer(y,x) )  // early fragment tests
+        {
+          render_target.setDepthBuffer(y, x, Z(f));     // early fragment tests
+
+          // perspectively-correct interpolation of attributes
+          scalar_vertex(f, 1.0f/W(f), frag, vertex_size+1);
+
+          float color[4];
+          // ... fragment shader comes here, writing to COLOR[4] ...
+          color[0] = 1.0f;
+          color[1] = 0.0f;
+          color[2] = 0.0f;
+          color[3] = 1.0f;
+
+          // write to framebuffer
+          RGBA8 color_ubyte;
+          color_ubyte.r = std::min(255, (int)(color[0]*255.0f));
+          color_ubyte.g = std::min(255, (int)(color[1]*255.0f));
+          color_ubyte.b = std::min(255, (int)(color[2]*255.0f));
+          color_ubyte.a = std::min(255, (int)(color[3]*255.0f));
+
+          render_target.setColorBuffer(y, x, color_ubyte);
+        }
+
+        inc_vertex(f, dV_dx, vertex_size+1);
+      }
+
+      //switch active edges if halfway through the triangle
+      //This MUST be done before incrementing, otherwise
+      //once we reached v1 we would pass through it and
+      //start coming back only in the next step, causing
+      //the big "leaking" triangles!
+      if( y == (int)Y(v1) ) next_active_edge = dV2_dy;
+
+      //increment bounds
+      inc_vertex(start, dStart_dy, vertex_size+1);
+      inc_vertex(end, dEnd_dy, vertex_size+1);
+    }
+  }
+
+
+
+
+
+
+
+
+  /*
+  for(int p_id = 0; p_id < culled_last; p_id += 3*vertex_sz)
+  {
+   #define ROUND(x) ((int)(x + 0.5f))
+   struct Vertex
+   {
+     float x, y;
+     vec3 color;
+     float z, w;
+
+     Vertex() {}
+
+     Vertex(const float* v_packed, const mat4& vp)
+     {
+       //we need x and y positions mapped to the viewport and
+       //with integer coordinates, otherwise we'll have displacements
+       //for start and end which are huge when because of 0 < dy < 1;
+       //these cases must be treated as straight, horizontal lines.
+       vec4 pos = vp*vec4(v_packed[0], v_packed[1], 1.0f, 1.0f);
+       x = ROUND(pos(0)); y = ROUND(pos(1));
+       color = vec3(v_packed[4], v_packed[5], v_packed[6]);
+       z = v_packed[2]; w = v_packed[7];
+     }
+
+     Vertex operator-(const Vertex& rhs)
+     {
+       Vertex out;
+       out.x = x - rhs.x;
+       out.y = y - rhs.y;
+       out.color = color - rhs.color;
+       out.z = z - rhs.z;
+       out.w = w - rhs.w; //TODO: not sure if I should do this
+       return out;
+     }
+
+     void operator+=(const Vertex& rhs)
+     {
+       x += rhs.x;
+       y += rhs.y;
+       color = color + rhs.color;
+       z += rhs.z;
+       w += rhs.w; //TODO: not sure if I should do this neither
+     }
+
+     Vertex operator/(float k)
+     {
+       Vertex out;
+       out.x = x / k;
+       out.y = y / k;
+       out.color = color * (1.0f/k);
+       out.z = z / k;
+       out.w = w / k;
+       return out;
+     }
+   };
+
+   //unpack vertex data into structs so we can
+   //easily interpolate/operate them.
+   //TODO: To better reflect OpenGL structure, viewport
+   //transformation should be applied after perspective
+   //division and before triangle culling, which should
+   //happen in primitive assembly
+   Vertex v0(&culled[p_id+0*vertex_sz], viewport);
+   Vertex v1(&culled[p_id+1*vertex_sz], viewport);
+   Vertex v2(&culled[p_id+2*vertex_sz], viewport);
+
+   //order vertices by y coordinate
+   #define SWAP(a,b) { Vertex aux = b; b = a; a = aux; }
+   if( v0.y > v1.y ) SWAP(v0, v1);
+   if( v0.y > v2.y ) SWAP(v0, v2);
+   if( v1.y > v2.y ) SWAP(v1, v2);
+
+   //these dVdy_ variables define how much we must
+   //increment v when increasing one unit in y, so
+   //we can use this to compute the start and end
+   //boundaries for rasterization. Notice that not
+   //only this defines the actual x coordinate of the
+   //fragment in the scanline, but all the other
+   //attributes. Also, notice that y is integer and
+   //thus if we make dy0 = (v1.y-v0.y) steps in y, for intance,
+   //incrementing v0 with dVdy0 at each step, by the end of
+   //the dy steps we'll have:
+   //
+   // v0 + dy0 * dVdy0 = v0 + dy0*(v1-v0)/dy0 = v0 + v1 - v0 = v1
+   //
+   //which is exactly what we want, a linear interpolation
+   //between v0 and v1 with dy0 steps
+   Vertex dV_dy0 = (v1-v0)/(v1.y-v0.y);
+   Vertex dV_dy1 = (v2-v0)/(v2.y-v0.y);
+   Vertex dV_dy2 = (v2-v1)/(v2.y-v1.y);
+   Vertex start, end;
+   Vertex dStart_dy, dEnd_dy;
+
+   //this will tell us whether we should change dStart_dy
+   //or dEnd_dy to the next active edge (dV_dy2) when we
+   //reach halfway the triangle
+   Vertex *next_active_edge;
+
+   //decide start/end edges. If v1 is to the left
+   //side of the edge connecting v0 and v2, then v0v1
+   //is the starting edge and v0v2 is the ending edge;
+   //if v1 is to the right, it is the contrary.
+   //the v0v1 edge will be substituted by the v1v2 edge
+   //when we reach the v1 vertex while scanlining, so we
+   //store which of the start/end edges we should replace
+   //with v1v2.
+   vec3 right_side = vec3(v1.x-v0.x, v1.y-v0.y, 0.0f).cross(vec3(v2.x-v0.x, v2.y-v0.y, 0.0f));
+   if( right_side(2) > 0.0f )
+   {
+     dEnd_dy = dV_dy0;
+     dStart_dy = dV_dy1;
+     next_active_edge = &dEnd_dy;
+   }
+   else
+   {
+     dEnd_dy = dV_dy1;
+     dStart_dy = dV_dy0;
+     next_active_edge = &dStart_dy;
+   }
+
+   //handle flat top triangles
+   if( v0.y == v1.y )
+   {
+     //switch active edge and update
+     //starting and ending points
+     if( v0.x < v1.x )
+     {
+       dEnd_dy = dV_dy2;
+       start = v0; end = v1;
+     }
+     else
+     {
+       dStart_dy = dV_dy2;
+       start = v1; end = v0;
+     }
+   }
+   else start = end = v0;
+
+   //loop over scanlines
+   for(int y = v0.y; y <= v2.y; ++y)
+   {
+     //rasterize scanline
+     int s = ROUND(start.x), e = ROUND(end.x);
+     Vertex dV_dx = (end - start)/(e - s);
+     Vertex f = start;
+
+     for(int x = s; x <= e; ++x)
+     {
+       //in order to draw only the edges, we skip this
+       //the scanline rasterization in all points but
+       //the extremities
+       if(param.draw_mode == GL_LINE && (x != s && x != e)) continue;
+
+       // To better represent what the pipeline does, we should, in the
+       // following order:
+       //
+       // 1) perform early fragment tests at this point (which include
+       // depth buffering, scissor testing and stencil buffering, for
+       // for example), which decide whether this fragment will live
+       // or not. Notice that at this point, a fragment is the set of
+       // attributes interpolated by the rasterizer;
+       //
+       // 2) evaluate fragment shader to compute a pixel sample from the
+       // fragment's attributes;
+       //
+       // 3) perform per-sample operations like alpha
+       // blending using the sample computed in the previous stage;
+       //
+       // It is interesting to notice that, as of version 4.6, the OpenGL
+       // specification calls "per-fragment
+       // operations" both early fragment tests (which MAY be performed
+       // before or after fragment shader evaluation, but executing before
+       // allows us to discard fragments without evaluating them) and
+       // per-sample operations (like like alpha blending, dithering and
+       // sRGB conversions), which MUST be performed after fragment shader
+       // evaluation because we need a pixel sample.
+
+       // Here we mixed things in the same code for simplicity
+       if( f.z < depth[y*buffer_width+x] )  // early fragment tests
+       {
+         depth[y*buffer_width+x] = f.z;     // early fragment tests
+
+         vec3 c = f.color * (1.0f / f.w);   // output of the rasterizer
+
+                                            // fragment shader comes here
+
+         int R = std::min(255, (int)(c(0)*255.0f)); // framebuffer writing
+         int G = std::min(255, (int)(c(1)*255.0f));
+         int B = std::min(255, (int)(c(2)*255.0f));
+
+         SET_PIXEL(y, x, R, G, B);
+       }
+
+       f += dV_dx;
+     }
+
+     //switch active edges if halfway through the triangle
+     //This MUST be done before incrementing, otherwise
+     //once we reached v1 we would pass through it and
+     //start coming back only in the next step, causing
+     //the big "leaking" triangles!
+     if( y == (int)v1.y ) *next_active_edge = dV_dy2;
+
+     //increment bounds
+     start += dStart_dy; end += dEnd_dy;
+   }
+  }
+  */
 }

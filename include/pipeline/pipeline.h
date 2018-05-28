@@ -35,6 +35,8 @@ private:
 
   // this is the actual vertex buffer we'll be working in
   float *vbuffer;
+  int vbuffer_sz;
+  int tri_sz;
 
   // Attributes can be accessed within the vbuffer_in
   // by knowing its size and stride. We store this info
@@ -47,6 +49,9 @@ private:
 
   // shaders <3
   VertexShader vshader;
+
+  // fixed stages
+  void rasterization(Framebuffer& render_target);
 
 public:
   GraphicPipeline();
