@@ -229,7 +229,7 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
   float* dV0_dy = new float[vertex_size+1];
   float* dV1_dy = new float[vertex_size+1];
   float* dV2_dy = new float[vertex_size+1];
-  
+
   float *dV_dx = new float[vertex_size+1];  //horizontal increment
   float *f = new float[vertex_size+1];      //bilinearly interpolated fragment
   float *frag = new float[vertex_size+1];   //persective interpolated fragment
@@ -244,6 +244,7 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
     //with integer coordinates, otherwise we'll have displacements
     //for start and end which are huge when 0 < dy < 1;
     //these cases must be treated as straight, horizontal lines.
+    //TODO: DOUBLE CHECK THIS CODE BECAUSE SOMETHING IS STRANGE HERE
     vec4 pos0 = viewport*vec4(v0_[0], v0_[1], 1.0f, 1.0f);
     X(v0) = ROUND(pos0(0)); Y(v0) = ROUND(pos0(1));
     Z(v0) = v0_[2]; W(v0) = v0_[vertex_size];

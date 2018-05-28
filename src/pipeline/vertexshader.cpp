@@ -4,6 +4,8 @@
 void VertexShader::launch(const float* vertex_in,
                             int vertex_sz, float* vertex_out)
 {
+  //TODO: CHECK ANY PROBLEMS WITH VERTEX SHADER.
+  // COMPARE THE OUTPUT WITH THE ORIGINAL CODE.
   Attribute pos_id = (*attribs)["pos"];
   const float *pos_ = &vertex_in[pos_id.stride];
 
