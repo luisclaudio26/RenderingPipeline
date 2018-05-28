@@ -56,7 +56,7 @@ void GraphicPipeline::render(Framebuffer& target)
 {
   // 1. [X] Vertex shader execution
   // 2. [X] Triangle clipping
-  // 3. [ ] Perspective division
+  // 3. [X] Perspective division
   // 4. [ ] Triangle culling
   // 5. [ ] Rasterization (including Fragment shader)
 
@@ -68,6 +68,9 @@ void GraphicPipeline::render(Framebuffer& target)
     const float* vertex_data = &vbuffer_in[v];
     float* target = &vbuffer[v_id*(vertex_size+1)];
 
+    // TODO: THE FIRST 4 POSITIONS SHOULD CORRESPOND TO
+    // GL_POSITION'S X Y Z W!!! The vertex shader must
+    // guarantee that
     vshader.launch(vertex_data, vertex_size, target);
   }
 
@@ -143,8 +146,42 @@ void GraphicPipeline::render(Framebuffer& target)
     for(int i = 0; i < vertex_size+1; ++i) v[i] /= w;
   }
 
+  // triangle culling
+  //TODO: In OpenGL architecture, culling happens in the primitive
+  //assembly stage, which is the first part of rasterization
+  int non_culled = 0;
+  for(int t = 0; t < vbuffer_sz; t += tri_sz)
+  {
+    float *v0 = &vbuffer[t + 0*(vertex_size+1)];
+    float *v1 = &vbuffer[t + 1*(vertex_size+1)];
+    float *v2 = &vbuffer[t + 2*(vertex_size+1)];
+
+    vec3 v0_(v0[0], v0[1], 1.0f);
+    vec3 v1_(v1[0], v1[1], 1.0f);
+    vec3 v2_(v2[0], v2[1], 1.0f);
+
+    //compute cross product p = v0v1 X v0v2;
+    //if p is pointing outside the screen, v0v1v2 are defined
+    //in counter-clockwise order. then, reject or accept this
+    //triangle based on the param.front_face flag.
+    vec3 c = (v1_-v0_).cross(v2_-v0_);
+
+    // cull clockwise triangles (z component of vector product
+    // c is facing -z). We do the same in place update of the
+    // vertex buffer as we did in the primitive clipping step
+    if(c(2) >= 0)
+    {
+      float* target = &vbuffer[non_culled];
+      memmove(target, &vbuffer[t], tri_sz*sizeof(float));
+      non_culled += tri_sz;
+    }
+  }
+
+  // update vbuffer size
+  vbuffer_sz = non_culled;
+
   printf("%d ---------------\n", vbuffer_sz);
-  for(int i = 0; i < vbuffer_sz; i += tri_sz)
+  for(int i = 0; i < vbuffer_sz; i += vertex_size+1)
   {
     float *v = &vbuffer[i];
     printf("%d - %f %f %f %f %f %f %f \n", i, v[0], v[1], v[2],
