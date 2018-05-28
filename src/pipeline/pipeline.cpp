@@ -55,7 +55,7 @@ void GraphicPipeline::upload_uniform(const mat4& model,
 void GraphicPipeline::render(Framebuffer& target)
 {
   // 1. [X] Vertex shader execution
-  // 2. [ ] Triangle clipping
+  // 2. [X] Triangle clipping
   // 3. [ ] Perspective division
   // 4. [ ] Triangle culling
   // 5. [ ] Rasterization (including Fragment shader)
@@ -130,9 +130,21 @@ void GraphicPipeline::render(Framebuffer& target)
     }
   }
 
+  // update vertex buffer size (there will be garbage by the
+  // end of the vector, but this isn't a problem).
+  vbuffer_sz = non_clipped;
 
-  printf("%d ---------------\n", non_clipped);
-  for(int i = 0; i < non_clipped; i += tri_sz)
+  // perspective division
+  for(int v_id = 0; v_id < vbuffer_sz; v_id += (vertex_size+1))
+  {
+    float *v = &vbuffer[v_id];
+    float w = v[3];
+
+    for(int i = 0; i < vertex_size+1; ++i) v[i] /= w;
+  }
+
+  printf("%d ---------------\n", vbuffer_sz);
+  for(int i = 0; i < vbuffer_sz; i += tri_sz)
   {
     float *v = &vbuffer[i];
     printf("%d - %f %f %f %f %f %f %f \n", i, v[0], v[1], v[2],
