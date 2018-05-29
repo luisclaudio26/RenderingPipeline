@@ -341,7 +341,7 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
     //this will tell us whether we should change dStart_dy
     //or dEnd_dy to the next active edge (dV2_dy) when we
     //reach halfway the triangle
-    float *next_active_edge;
+    float **next_active_edge;
 
     //decide start/end edges. If v1 is to the left
     //side of the edge connecting v0 and v2, then v0v1
@@ -356,13 +356,13 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
     {
       dEnd_dy = dV0_dy;
       dStart_dy = dV1_dy;
-      next_active_edge = dEnd_dy;
+      next_active_edge = &dEnd_dy;
     }
     else
     {
       dEnd_dy = dV1_dy;
       dStart_dy = dV0_dy;
-      next_active_edge = dStart_dy;
+      next_active_edge = &dStart_dy;
     }
 
     //handle flat top triangles
@@ -403,7 +403,8 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
       scalar_vertex(dV_dx, 1.0f/(e-s), dV_dx, vbuffer_elem_sz);
 
       // initialize the actual fragment
-      memcpy(f, start, vbuffer_elem_sz*sizeof(float));
+      //memcpy(f, start, vbuffer_elem_sz*sizeof(float));
+      MOVE(start, f);
 
       for(int x = s; x <= e; ++x)
       {
@@ -470,7 +471,7 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
       //once we reached v1 we would pass through it and
       //start coming back only in the next step, causing
       //the big "leaking" triangles!
-      if( y == (int)Y(v1) ) next_active_edge = dV2_dy;
+      if( y == (int)Y(v1) ) *next_active_edge = dV2_dy;
 
       //increment bounds
       //TODO: Start and End may point to the same cell!
