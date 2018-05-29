@@ -164,6 +164,7 @@ public:
     mat4 proj = mat4::perspective(45.0f, 45.0f, 1.0f, 10.0f);
     mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
 
+    fbo.clearDepthBuffer();
     fbo.clearColorBuffer();
 
     gp.upload_uniform(model, view, proj, viewport);

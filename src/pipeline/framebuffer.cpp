@@ -49,4 +49,8 @@ float Framebuffer::getDepthBuffer(int i, int j) const
 }
 
 void Framebuffer::clearColorBuffer() { memset((void*)color, 0, sizeof(RGBA8)*w*h); }
-void Framebuffer::clearDepthBuffer() { memset((void*)depth, 0, sizeof(float)*w*h); }
+void Framebuffer::clearDepthBuffer()
+{
+  for(int i = 0; i < w*h; ++i)
+    depth[i] = 100.0f;
+}

@@ -244,6 +244,10 @@ static inline void inc_vertex(float* target, float* inc, int vertex_sz)
 
 void GraphicPipeline::rasterization(Framebuffer& render_target)
 {
+  // akin to an assembly move. This will (should) be used for
+  // buffers of the same size only, so we don't need the size
+  // as parameter.
+  #define MOVE(s,t) { memcpy(t, s, vbuffer_elem_sz*sizeof(float)); }
   #define ROUND(x) ((int)(x + 0.5f))
   #define SWAP(a,b) { float* aux = b; b = a; a = aux; }
   #define X(x) (x[0])
@@ -252,50 +256,53 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
   #define W(x) (x[3])
 
   // preallocate buffers
-  float *v0 = new float[vertex_size+1];
-  float *v1 = new float[vertex_size+1];
-  float *v2 = new float[vertex_size+1];
+  // QUESTION: Those work more or less like _registers_,
+  // we just use them as operand holders for the rasterization
+  // operation as neither their size nor their location changes
+  // throughout the whole computation, except for the moment where
+  // upload data to the GPU; how is it implemented in video cards?
+  // TODO: Once this is working, allocate a single contiguous
+  // vector and make pointers point to sections of it; this should
+  // increase cache locality.
+  float *v0 = new float[vbuffer_elem_sz];
+  float *v1 = new float[vbuffer_elem_sz];
+  float *v2 = new float[vbuffer_elem_sz];
 
-  float* dV0_dy = new float[vertex_size+1];
-  float* dV1_dy = new float[vertex_size+1];
-  float* dV2_dy = new float[vertex_size+1];
+  float* dV0_dy = new float[vbuffer_elem_sz];
+  float* dV1_dy = new float[vbuffer_elem_sz];
+  float* dV2_dy = new float[vbuffer_elem_sz];
 
-  float *dV_dx = new float[vertex_size+1];  //horizontal increment
-  float *f = new float[vertex_size+1];      //bilinearly interpolated fragment
-  float *frag = new float[vertex_size+1];   //persective interpolated fragment
+  float *start = new float[vbuffer_elem_sz];  //starting fragment in scanline
+  float *end = new float[vbuffer_elem_sz];    //ending fragment in scanline
+  float *dV_dx = new float[vbuffer_elem_sz];  //horizontal increment
+  float *f = new float[vbuffer_elem_sz];      //bilinearly interpolated fragment
+  float *frag = new float[vbuffer_elem_sz];   //persective interpolated fragment
 
   for(int t = 0; t < vbuffer_sz; t += tri_sz)
   {
-    float *v0_ = &vbuffer[t + 0*(vertex_size+1)];
-    float *v1_ = &vbuffer[t + 1*(vertex_size+1)];
-    float *v2_ = &vbuffer[t + 2*(vertex_size+1)];
-
-    /*
-    for(int i = 0; i < tri_sz; ++i)
-      printf("%f ", vbuffer[t + i]);
-    printf("-------------------\n");
-    */
-
+    float *v0_ = &vbuffer[t + 0*vbuffer_elem_sz];
+    float *v1_ = &vbuffer[t + 1*vbuffer_elem_sz];
+    float *v2_ = &vbuffer[t + 2*vbuffer_elem_sz];
 
     //we need x and y positions mapped to the viewport and
     //with integer coordinates, otherwise we'll have displacements
     //for start and end which are huge when 0 < dy < 1;
     //these cases must be treated as straight, horizontal lines.
-    //TODO: DOUBLE CHECK THIS CODE BECAUSE SOMETHING IS STRANGE HERE
+    //TODO: SEEMS CORRECT, BUT THIS JUST SHITTY
     vec4 pos0 = viewport*vec4(v0_[0], v0_[1], 1.0f, 1.0f);
     X(v0) = ROUND(pos0(0)); Y(v0) = ROUND(pos0(1));
-    Z(v0) = v0_[2]; W(v0) = v0_[vertex_size];
-    memcpy(&v0[4], &v0_[4], (vertex_size+1-4)*sizeof(float));
+    Z(v0) = v0_[2]; W(v0) = v0_[vbuffer_elem_sz-1];
+    memcpy(&v0[4], &v0_[4], (vbuffer_elem_sz-4)*sizeof(float));
 
     vec4 pos1 = viewport*vec4(v1_[0], v1_[1], 1.0f, 1.0f);
     X(v1) = ROUND(pos1(0)); Y(v1) = ROUND(pos1(1));
-    Z(v1) = v1_[2]; W(v1) = v1_[vertex_size];
-    memcpy(&v1[4], &v1_[4], (vertex_size+1-4)*sizeof(float));
+    Z(v1) = v1_[2]; W(v1) = v1_[vbuffer_elem_sz-1];
+    memcpy(&v1[4], &v1_[4], (vbuffer_elem_sz-4)*sizeof(float));
 
     vec4 pos2 = viewport*vec4(v2_[0], v2_[1], 1.0f, 1.0f);
     X(v2) = ROUND(pos2(0)); Y(v2) = ROUND(pos2(1));
-    Z(v2) = v2_[2]; W(v2) = v2_[vertex_size];
-    memcpy(&v2[4], &v2_[4], (vertex_size+1-4)*sizeof(float));
+    Z(v2) = v2_[2]; W(v2) = v2_[vbuffer_elem_sz-1];
+    memcpy(&v2[4], &v2_[4], (vbuffer_elem_sz-4)*sizeof(float));
 
     //order vertices by y coordinate
     if( Y(v0) > Y(v1) ) SWAP(v0, v1);
@@ -318,22 +325,23 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
     //which is exactly what we want, a linear interpolation
     //between v0 and v1 with dy0 steps
     //TODO: Preallocate dVx_dy in the upload_data() routine!
-    sub_vertex(v1, v0, dV0_dy, vertex_size+1);
-    scalar_vertex(dV0_dy, 1.0f/(Y(v1)-Y(v0)), dV0_dy, vertex_size+1);
+    sub_vertex(v1, v0, dV0_dy, vbuffer_elem_sz);
+    scalar_vertex(dV0_dy, 1.0f/(Y(v1)-Y(v0)), dV0_dy, vbuffer_elem_sz);
 
-    sub_vertex(v2, v0, dV1_dy, vertex_size+1);
-    scalar_vertex(dV1_dy, 1.0f/(Y(v2)-Y(v0)), dV1_dy, vertex_size+1);
+    sub_vertex(v2, v0, dV1_dy, vbuffer_elem_sz);
+    scalar_vertex(dV1_dy, 1.0f/(Y(v2)-Y(v0)), dV1_dy, vbuffer_elem_sz);
 
-    sub_vertex(v2, v1, dV2_dy, vertex_size+1);
-    scalar_vertex(dV2_dy, 1.0f/(Y(v2)-Y(v1)), dV2_dy, vertex_size+1);
+    sub_vertex(v2, v1, dV2_dy, vbuffer_elem_sz);
+    scalar_vertex(dV2_dy, 1.0f/(Y(v2)-Y(v1)), dV2_dy, vbuffer_elem_sz);
 
-    float *start, *end;
+    // these pointers store the current increment for starting
+    // ending segments
     float *dStart_dy, *dEnd_dy;
 
     //this will tell us whether we should change dStart_dy
     //or dEnd_dy to the next active edge (dV2_dy) when we
     //reach halfway the triangle
-    float* next_active_edge;
+    float *next_active_edge;
 
     //decide start/end edges. If v1 is to the left
     //side of the edge connecting v0 and v2, then v0v1
@@ -365,15 +373,24 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
       if( X(v0) < X(v1) )
       {
         dEnd_dy = dV2_dy;
-        start = v0; end = v1;
+        //start = v0; end = v1;
+        MOVE(v0, start);
+        MOVE(v1, end);
       }
       else
       {
         dStart_dy = dV2_dy;
-        start = v1; end = v0;
+        //start = v1; end = v0;
+        MOVE(v1, start);
+        MOVE(v0, end);
       }
     }
-    else start = end = v0;
+    else
+    {
+      //start = end = v0;
+      MOVE(v0, start);
+      MOVE(v0, end);
+    }
 
     //loop over scanlines
     for(int y = Y(v0); y <= Y(v2); ++y)
@@ -382,11 +399,11 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
       int s = ROUND(X(start)), e = ROUND(X(end));
 
       // compute horizontal increment dV_dx
-      sub_vertex(end, start, dV_dx, vertex_size+1);
-      scalar_vertex(dV_dx, 1.0f/(e-s), dV_dx, vertex_size+1);
+      sub_vertex(end, start, dV_dx, vbuffer_elem_sz);
+      scalar_vertex(dV_dx, 1.0f/(e-s), dV_dx, vbuffer_elem_sz);
 
       // initialize the actual fragment
-      memcpy(f, start, (vertex_size+1)*sizeof(float));
+      memcpy(f, start, vbuffer_elem_sz*sizeof(float));
 
       for(int x = s; x <= e; ++x)
       {
@@ -425,7 +442,8 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
           render_target.setDepthBuffer(y, x, Z(f));     // early fragment tests
 
           // perspectively-correct interpolation of attributes
-          scalar_vertex(f, 1.0f/W(f), frag, vertex_size+1);
+          // TODO: not sure if I can do this
+          // scalar_vertex(f, 1.0f/W(f), frag, vbuffer_elem_sz);
 
           float color[4];
           // ... fragment shader comes here, writing to COLOR[4] ...
@@ -444,7 +462,7 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
           render_target.setColorBuffer(y, x, color_ubyte);
         }
 
-        inc_vertex(f, dV_dx, vertex_size+1);
+        inc_vertex(f, dV_dx, vbuffer_elem_sz);
       }
 
       //switch active edges if halfway through the triangle
@@ -455,8 +473,10 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
       if( y == (int)Y(v1) ) next_active_edge = dV2_dy;
 
       //increment bounds
-      inc_vertex(start, dStart_dy, vertex_size+1);
-      inc_vertex(end, dEnd_dy, vertex_size+1);
+      //TODO: Start and End may point to the same cell!
+      //we should allocate different buffers for them!
+      inc_vertex(start, dStart_dy, vbuffer_elem_sz);
+      inc_vertex(end, dEnd_dy, vbuffer_elem_sz);
     }
   }
 
@@ -467,6 +487,8 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
   delete[] dV0_dy;
   delete[] dV1_dy;
   delete[] dV2_dy;
+  delete[] start;
+  delete[] end;
   delete[] f;
   delete[] frag;
   delete[] dV_dx;
