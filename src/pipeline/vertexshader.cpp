@@ -1,23 +1,19 @@
 #include "../../include/pipeline/vertexshader.h"
 #include <cstdlib>
 
-void VertexShader::launch(const float* vertex_in,
-                            int vertex_sz, float* vertex_out)
+void VertexShader::launch(const float* vertex_in, float* vertex_out,
+                          int vertex_sz, vec4& position)
 {
-  //TODO: CHECK ANY PROBLEMS WITH VERTEX SHADER.
-  // COMPARE THE OUTPUT WITH THE ORIGINAL CODE.
   Attribute pos_id = (*attribs)["pos"];
   const float *pos_ = &vertex_in[pos_id.stride];
 
   vec4 pos(pos_[0], pos_[1], pos_[2], 1.0f);
   pos = (*projection) * (*view) * (*model) * pos;
 
-  for(int i = 0; i < 4; ++i)
-    vertex_out[i] = pos(i);
+  vertex_out[0] = 15.0f;
+  vertex_out[1] = 20.0f;
+  vertex_out[2] = 25.0f;
 
-    /*
-  for(int i = 0; i < vertex_sz; ++i)
-    printf("(%f %f)", vertex_in[i], vertex_out[i]);
-  printf("\n");
-  */
+  // set output vertex
+  for(int i = 0; i < 4; ++i) position(i) = pos(i);
 }

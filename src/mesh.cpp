@@ -51,7 +51,7 @@ void Mesh::transform_to_center(mat4& M)
   mat4 from_origin( vec4(1.0f, 0.0f, 0.0f, 0.0f),
                     vec4(0.0f, 1.0f, 0.0f, 0.0f),
                     vec4(0.0f, 0.0f, 1.0f, 0.0f),
-                    vec4(0.0f, 0.0f, -5.5f, 0.0f));
+                    vec4(0.0f, 0.0f, -5.5f, 1.0f));
 
   //final transformation
   M = from_origin * scale * to_origin;

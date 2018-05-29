@@ -30,8 +30,19 @@ void GraphicPipeline::upload_data(const std::vector<float>& data, int vertex_siz
 
   // allocate memory for the working vertex buffer.
   // We need extra space because of the extra w parameter
-  // we'll need for perpective interpolation.
-  vbuffer = new float[n_floats + n_vertices];
+  // we'll need for perpective interpolation AND the vertex
+  // position (akin to GL_POSITION).
+  // Well, storing position implies that if the user has
+  // supplied us with a "pos" attribute we're gonna store
+  // redundant information, but we can't count on that
+  // (for example, when rendering 2D things the user will most
+  // likely pass a 2D vector with screen coordinates and set
+  // the output of the vertex shader to z = 0, for example).
+  this->vbuffer_elem_sz = 4 + vertex_size + 1;
+  this->tri_sz = 3*vbuffer_elem_sz;
+  this->vbuffer_sz = n_vertices * vbuffer_elem_sz;
+
+  vbuffer = new float[vbuffer_sz];
 }
 
 void GraphicPipeline::define_attribute(const std::string& name, int n_floats, int stride)
@@ -67,33 +78,50 @@ void GraphicPipeline::render(Framebuffer& render_target)
   // 4. [X] Triangle culling
   // 5. [X] Rasterization (including Fragment shader)
 
-  // vertex processing stage. v stores the starting address of a new
-  // vertex and v_id the actual "id" of this very same vertex
-  for(int v = 0, v_id = 0; v < vbuffer_in_sz; v += vertex_size, ++v_id)
-  {
-    //extract vertex data and send to vertex shader
-    const float* vertex_data = &vbuffer_in[v];
-    float* target = &vbuffer[v_id*(vertex_size+1)];
+  // reset vbuffer state variables, so our loops controlled
+  // by vbuffer_sz will be correct!
+  vbuffer_sz = n_vertices * vbuffer_elem_sz;
 
-    // TODO: THE FIRST 4 POSITIONS SHOULD CORRESPOND TO
-    // GL_POSITION'S X Y Z W!!! The vertex shader must
-    // guarantee that
-    vshader.launch(vertex_data, vertex_size, target);
+  // TODO: instead of managing indices, use iterating pointers!
+  // vertex processing stage. v stores the starting address of a new
+  // vertex in vbuffer_in and v_id the actual "id" of this very same vertex
+  for(int v = 0, vbuffer_elem = 0;
+      v < vbuffer_in_sz;
+      v += vertex_size, vbuffer_elem += vbuffer_elem_sz)
+  {
+    // input data to vertex shader (akin to the "in"
+    // variables in GLSL) is the raw vbuffer_in
+    const float* vertex_data = &vbuffer_in[v];
+
+    // output data (akin to the "out" variables in GLSL)
+    // are the elements in the vbuffer from the 5th position
+    // on, because the first 4 floats are dedicated to the
+    // vertex position and will be aliased as the OUT_POS
+    // variable. The attribute "1" in the end must remain
+    // untouched.
+    vec4 out_pos;
+    float* target = &vbuffer[vbuffer_elem+4];
+
+    vshader.launch(vertex_data, target, vertex_size, out_pos);
+
+    // setup elements Position and 1.0 in vbuffer
+    for(int i = 0; i < 4; ++i) vbuffer[vbuffer_elem+i] = out_pos(i);
+    vbuffer[vbuffer_elem + vbuffer_elem_sz-1] = 1.0f;
   }
 
   // triangle clipping
-  this->vbuffer_sz = vbuffer_in_sz + n_vertices;
-  this->tri_sz = 3*(vertex_size+1);
+  //this->vbuffer_sz = vbuffer_in_sz + n_vertices;
+  //this->tri_sz = 3*(vertex_size+1);
   int non_clipped = 0;
   for(int t = 0; t < vbuffer_sz; t += tri_sz)
   {
     bool discard = false;
 
-    // a primitice is discarded if any of
+    // a primitive is discarded if any of
     // its vertices is not visible
     for(int v_id = 0; v_id < 3; ++v_id)
     {
-      float* v = &vbuffer[t + v_id*(vertex_size+1)];
+      float* v = &vbuffer[t + v_id*vbuffer_elem_sz];
       float w = v[3];
 
       // discard primitives behind the camera
@@ -134,6 +162,8 @@ void GraphicPipeline::render(Framebuffer& render_target)
     // lots of sync barriers.
     if(!discard)
     {
+      // TODO: checking whether non_clipped == 0 may spare some
+      // memoves (but not many)
       float *target = &vbuffer[non_clipped];
       memmove(target, &vbuffer[t], tri_sz*sizeof(float));
       non_clipped += tri_sz;
@@ -145,12 +175,12 @@ void GraphicPipeline::render(Framebuffer& render_target)
   vbuffer_sz = non_clipped;
 
   // perspective division
-  for(int v_id = 0; v_id < vbuffer_sz; v_id += (vertex_size+1))
+  for(int v_id = 0; v_id < vbuffer_sz; v_id += vbuffer_elem_sz)
   {
     float *v = &vbuffer[v_id];
     float w = v[3];
 
-    for(int i = 0; i < vertex_size+1; ++i) v[i] /= w;
+    for(int i = 0; i < vbuffer_elem_sz; ++i) v[i] /= w;
   }
 
   // triangle culling
@@ -159,9 +189,9 @@ void GraphicPipeline::render(Framebuffer& render_target)
   int non_culled = 0;
   for(int t = 0; t < vbuffer_sz; t += tri_sz)
   {
-    float *v0 = &vbuffer[t + 0*(vertex_size+1)];
-    float *v1 = &vbuffer[t + 1*(vertex_size+1)];
-    float *v2 = &vbuffer[t + 2*(vertex_size+1)];
+    float *v0 = &vbuffer[t + 0*vbuffer_elem_sz];
+    float *v1 = &vbuffer[t + 1*vbuffer_elem_sz];
+    float *v2 = &vbuffer[t + 2*vbuffer_elem_sz];
 
     vec3 v0_(v0[0], v0[1], 1.0f);
     vec3 v1_(v1[0], v1[1], 1.0f);
@@ -239,6 +269,13 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
     float *v0_ = &vbuffer[t + 0*(vertex_size+1)];
     float *v1_ = &vbuffer[t + 1*(vertex_size+1)];
     float *v2_ = &vbuffer[t + 2*(vertex_size+1)];
+
+    /*
+    for(int i = 0; i < tri_sz; ++i)
+      printf("%f ", vbuffer[t + i]);
+    printf("-------------------\n");
+    */
+
 
     //we need x and y positions mapped to the viewport and
     //with integer coordinates, otherwise we'll have displacements

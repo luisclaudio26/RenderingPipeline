@@ -34,9 +34,13 @@ private:
   int vertex_size;
   int n_vertices;
 
-  // this is the actual vertex buffer we'll be working in
+  // this is the actual vertex buffer we'll be working in.
+  // vbuffer_elem_sz defines the size of a single element
+  // inside vbuffer (i.e., it includes the W parameter used
+  // for interpolation and vertex position is stored as 4 floats)
   float *vbuffer;
   int vbuffer_sz;
+  int vbuffer_elem_sz;
   int tri_sz;
 
   // Attributes can be accessed within the vbuffer_in
