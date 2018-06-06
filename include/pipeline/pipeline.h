@@ -63,7 +63,7 @@ private:
   void vertex_processing();
   int primitive_clipping();
   void perspective_division();
-  int primitive_culling(bool cull_back = true);
+  int primitive_culling(bool cull_back);
   void rasterization(Framebuffer& render_target);
 
 public:
