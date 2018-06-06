@@ -63,7 +63,7 @@ private:
   void vertex_processing();
   int primitive_clipping();
   void perspective_division();
-  int primitive_culling();
+  int primitive_culling(bool cull_back = true);
   void rasterization(Framebuffer& render_target);
 
 public:
@@ -93,7 +93,7 @@ public:
   // After setting the attributes and uniforms,
   // render sends them through the pipeline and
   // stores the final result in the target Framebuffer
-  void render(Framebuffer& target);
+  void render(Framebuffer& target, bool cull_back = true);
 };
 
 #endif

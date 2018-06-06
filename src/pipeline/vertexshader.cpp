@@ -5,6 +5,7 @@
 void VertexShader::launch(const float* vertex_in, float* vertex_out,
                           int vertex_sz, vec4& position)
 {
+  // QUESTION: How to make this more user friendly?!
   // output position
   Attribute pos_id = (*attribs)["pos"];
   const float *pos_ = &vertex_in[pos_id.stride];

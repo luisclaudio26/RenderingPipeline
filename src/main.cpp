@@ -19,13 +19,25 @@
 const int DEFAULT_WIDTH = 960;
 const int DEFAULT_HEIGHT = 540;
 
+// angular step used in camera motion
+#define THETA 0.0174533f
+#define COSTHETA float(cos(THETA))
+#define SINTHETA float(sin(THETA))
+
 class Engine : public nanogui::Screen
 {
 private:
+  // rendering pipeline
   GraphicPipeline gp;
   Framebuffer fbo;
 
+  // scene info
   Mesh mesh; mat4 model;
+
+  vec3 eye, right, up, look_dir; float step;
+  bool lock_view;
+
+  bool cull_back;
 
   //display stuff
   nanogui::GLShader shader;
@@ -34,6 +46,14 @@ private:
 public:
   Engine(const char* path) : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test")
   {
+    eye = vec3(0.0f, 0.0f, 0.0f);
+    up = vec3(0.0f, 1.0f, 0.0f);
+    look_dir = vec3(0.0f, 0.0f, -1.0f);
+    right = vec3(1.0f, 0.0f, 0.0f);
+    step = 0.1f;
+    lock_view = false;
+    cull_back = false;
+
     // Load model and unpack.
     // The first version packs mesh data into
     // Eigen matrices. Although this indeed
@@ -146,6 +166,120 @@ public:
     shader.uploadAttrib<Eigen::MatrixXf>("quad_uv", texcoord);
   }
 
+  virtual bool keyboardEvent(int key, int scancode, int action, int modifiers) {
+      if (Screen::keyboardEvent(key, scancode, action, modifiers)) return true;
+
+      //camera movement
+      if(key == GLFW_KEY_A && action == GLFW_REPEAT) {
+        eye += (-right) * step;
+        if(lock_view)
+        {
+          look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
+          right = look_dir.cross(up);
+        }
+        return true;
+      }
+      if(key == GLFW_KEY_D && action == GLFW_REPEAT) {
+        eye += right * step;
+        if(lock_view)
+        {
+          look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
+          right = look_dir.cross(up);
+        }
+        return true;
+      }
+      if( key == GLFW_KEY_W && action == GLFW_REPEAT ) {
+        eye += look_dir * step;
+        //if(lock_view) look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
+        return true;
+      }
+      if( key == GLFW_KEY_S && action == GLFW_REPEAT ) {
+        eye += look_dir * (-step);
+        //if(lock_view) look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
+        return true;
+      }
+      if( key == GLFW_KEY_R && action == GLFW_REPEAT ) {
+        eye += up * step;
+        if(lock_view)
+        {
+          look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
+          up = right.cross(look_dir);
+        }
+
+        return true;
+      }
+      if( key == GLFW_KEY_F && action == GLFW_REPEAT ) {
+        eye += (-up) * step;
+        if(lock_view)
+        {
+          look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
+          up = right.cross(look_dir);
+        }
+        return true;
+      }
+
+      //TODO: we can precompute sin and cos values!
+      if( key == GLFW_KEY_U && action == GLFW_REPEAT ) {
+        if(lock_view) return true;
+
+        vec3 u = look_dir, v = up;
+        look_dir = u*COSTHETA + v*SINTHETA;
+        up = -u*SINTHETA + v*COSTHETA;
+
+        return true;
+      }
+      if( key == GLFW_KEY_J && action == GLFW_REPEAT ) {
+        if(lock_view) return true;
+
+        vec3 u = look_dir, v = up;
+        look_dir = u*COSTHETA + -v*SINTHETA;
+        up = u*SINTHETA + v*COSTHETA;
+
+        return true;
+      }
+      if( key == GLFW_KEY_K && action == GLFW_REPEAT ) {
+        if(lock_view) return true;
+
+        vec3 u = right, v = look_dir;
+        right = u*COSTHETA + -v*SINTHETA;
+        look_dir = u*SINTHETA + v*COSTHETA;
+
+        return true;
+      }
+      if( key == GLFW_KEY_H && action == GLFW_REPEAT ) {
+        if(lock_view) return true;
+
+        vec3 u = right, v = look_dir;
+        right = u*COSTHETA + v*SINTHETA;
+        look_dir = -u*SINTHETA + v*COSTHETA;
+
+        return true;
+      }
+
+      //------------
+      if( key == GLFW_KEY_M && action == GLFW_REPEAT ) {
+        if(lock_view) return true;
+
+        vec3 u = right, v = up;
+        right = u*COSTHETA + -v*SINTHETA;
+        up = u*SINTHETA + v*COSTHETA;
+
+        return true;
+      }
+      if( key == GLFW_KEY_N && action == GLFW_REPEAT ) {
+        if(lock_view) return true;
+
+        vec3 u = right, v = up;
+        right = u*COSTHETA + v*SINTHETA;
+        up = -u*SINTHETA + v*COSTHETA;
+
+        return true;
+      }
+      //---------------
+
+      return false;
+    }
+
   virtual void draw(NVGcontext *ctx)
   {
     Screen::draw(ctx);
@@ -157,9 +291,7 @@ public:
     //----------- RENDERING ----------
     //--------------------------------
     //proj and viewport could be precomputed!
-    mat4 view = mat4::view( vec3(0.0f, 0.0f, 0.0f),
-                            vec3(0.0f, 0.0f, -1.0f),
-                            vec3(0.0f, 1.0f, 0.0f) );
+    mat4 view = mat4::view(eye, eye + look_dir, up);
 
     mat4 proj = mat4::perspective(45.0f, 45.0f, 1.0f, 10.0f);
     mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
@@ -168,7 +300,7 @@ public:
     fbo.clearColorBuffer();
 
     gp.upload_uniform(model, view, proj, viewport);
-    gp.render(fbo);
+    gp.render(fbo, cull_back);
 
     GLubyte *color_buffer = fbo.colorBuffer();
 

@@ -81,7 +81,7 @@ void GraphicPipeline::upload_uniform(const mat4& model,
   vshader.viewport = &this->viewport;
 }
 
-void GraphicPipeline::render(Framebuffer& render_target)
+void GraphicPipeline::render(Framebuffer& render_target, bool cull_back)
 {
   // reset vbuffer state variables, so loops controlled
   // by vbuffer_sz will be correct!
@@ -93,7 +93,7 @@ void GraphicPipeline::render(Framebuffer& render_target)
   vertex_processing();
   vbuffer_sz = primitive_clipping();
   perspective_division();
-  vbuffer_sz = primitive_culling();
+  vbuffer_sz = primitive_culling(cull_back);
   rasterization(render_target);
 }
 
@@ -235,7 +235,7 @@ void GraphicPipeline::perspective_division()
   return;
 }
 
-int GraphicPipeline::primitive_culling()
+int GraphicPipeline::primitive_culling(bool cull_back)
 {
   // loop over each primitive, check whether
   // it is frontfacing or backfacing and then
@@ -260,7 +260,8 @@ int GraphicPipeline::primitive_culling()
     // cull clockwise triangles (z component of vector product
     // c is facing -z). We do the same in place update of the
     // vertex buffer as we did in the primitive clipping step
-    if(c(2) >= 0)
+    if( (cull_back && c(2) >= 0) ||
+        (!cull_back && c(2) <= 0) )
     {
       float* target = &vbuffer[non_culled];
       memmove(target, &vbuffer[t], tri_sz*sizeof(float));

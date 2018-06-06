@@ -45,6 +45,12 @@ vec3 vec3::operator+(const vec3& rhs) const
 {
   return vec3(e[0]+rhs(0), e[1]+rhs(1), e[2]+rhs(2));
 }
+
+void vec3::operator+=(const vec3& rhs)
+{
+  *this = (*this) + rhs;
+}
+
 vec3 vec3::operator-(const vec3& rhs) const
 {
   return (*this) + (-rhs);
