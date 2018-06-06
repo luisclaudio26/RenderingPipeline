@@ -52,11 +52,11 @@ public:
       mesh_data.push_back(p(1));
       mesh_data.push_back(p(2));
 
-      /*
+
       Eigen::Vector3f n = mesh.mNormal.col(i);
       mesh_data.push_back(n(0));
       mesh_data.push_back(n(1));
-      mesh_data.push_back(n(2)); */
+      mesh_data.push_back(n(2));
     }
 
     mesh.transform_to_center(model);
@@ -64,9 +64,9 @@ public:
     // ---------------------------------------------
     // ---------- Upload data to pipeline ----------
     // ---------------------------------------------
-    gp.upload_data(mesh_data, 3);
+    gp.upload_data(mesh_data, 6);
     gp.define_attribute("pos", 3, 0);
-    //gp.define_attribute("normal", 3, 3);
+    gp.define_attribute("normal", 3, 3);
 
     // ----------------------------------
     // ---------- Framebuffers ----------

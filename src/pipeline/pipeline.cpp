@@ -6,7 +6,12 @@
 GraphicPipeline::GraphicPipeline()
   : vbuffer_in(NULL), vbuffer(NULL), vertex_size(0)
 {
+  // both the vertex and fragment shader store only
+  // a pointer to the actual attribute dictionary.
+  // This complicates things a bit but spare us of
+  // having to update it on two places manually.
   vshader.attribs = &attribs;
+  fshader.attribs = &attribs;
 }
 
 GraphicPipeline::~GraphicPipeline()
@@ -54,6 +59,9 @@ void GraphicPipeline::define_attribute(const std::string& name, int n_floats, in
   a.size = n_floats;
   a.stride = stride;
 
+  // remember that vertex and fragment shaders
+  // store a pointer to attribs, so we don't need
+  // to update them
   attribs[name] = a;
 }
 
@@ -465,21 +473,17 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
 
           // perspectively-correct interpolation of attributes
           // TODO: not sure if I can do this
-          // scalar_vertex(f, 1.0f/W(f), frag, vbuffer_elem_sz);
+          scalar_vertex(f, 1.0f/W(f), frag, vbuffer_elem_sz);
 
-          float color[4];
-          // ... fragment shader comes here, writing to COLOR[4] ...
-          color[0] = 1.0f;
-          color[1] = 0.0f;
-          color[2] = 0.0f;
-          color[3] = 1.0f;
+          // invoke fragment shader for the interpolated fragment
+          rgba frag_color = fshader.launch(frag);
 
           // write to framebuffer
           RGBA8 color_ubyte;
-          color_ubyte.r = std::min(255, (int)(color[0]*255.0f));
-          color_ubyte.g = std::min(255, (int)(color[1]*255.0f));
-          color_ubyte.b = std::min(255, (int)(color[2]*255.0f));
-          color_ubyte.a = std::min(255, (int)(color[3]*255.0f));
+          color_ubyte.r = std::min(255, (int)(frag_color(0)*255.0f));
+          color_ubyte.g = std::min(255, (int)(frag_color(1)*255.0f));
+          color_ubyte.b = std::min(255, (int)(frag_color(2)*255.0f));
+          color_ubyte.a = std::min(255, (int)(frag_color(3)*255.0f));
 
           render_target.setColorBuffer(y, x, color_ubyte);
         }

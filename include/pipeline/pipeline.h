@@ -7,6 +7,7 @@
 #include "../matrix.h"
 #include "framebuffer.h"
 #include "vertexshader.h"
+#include "fragmentshader.h"
 #include "attribute.h"
 
 class GraphicPipeline
@@ -56,6 +57,7 @@ private:
 
   // shaders <3
   VertexShader vshader;
+  FragmentShader fshader;
 
   // fixed stages
   void vertex_processing();
