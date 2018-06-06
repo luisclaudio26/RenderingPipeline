@@ -1,5 +1,8 @@
 #include "../../include/pipeline/pipeline.h"
 
+// -----------------------------------------
+// -------------- Public API ---------------
+// -----------------------------------------
 GraphicPipeline::GraphicPipeline()
   : vbuffer_in(NULL), vbuffer(NULL), vertex_size(0)
 {
@@ -72,16 +75,48 @@ void GraphicPipeline::upload_uniform(const mat4& model,
 
 void GraphicPipeline::render(Framebuffer& render_target)
 {
-  // 1. [X] Vertex shader execution
-  // 2. [X] Triangle clipping
-  // 3. [X] Perspective division
-  // 4. [X] Triangle culling
-  // 5. [X] Rasterization (including Fragment shader)
-
-  // reset vbuffer state variables, so our loops controlled
+  // reset vbuffer state variables, so loops controlled
   // by vbuffer_sz will be correct!
   vbuffer_sz = n_vertices * vbuffer_elem_sz;
 
+  //NOTE: In OpenGL architecture, culling happens in the primitive
+  //assembly stage, which is the first part of rasterization
+
+  vertex_processing();
+  vbuffer_sz = primitive_clipping();
+  perspective_division();
+  vbuffer_sz = primitive_culling();
+  rasterization(render_target);
+}
+
+// ---------------------------------------
+// -------------- Utilities --------------
+// ---------------------------------------
+static inline void sub_vertex(const float* lhs, const float* rhs,
+                              float* target, int vertex_sz)
+{
+  for(int i = 0; i < vertex_sz; ++i)
+    target[i] = lhs[i] - rhs[i];
+}
+
+static inline void scalar_vertex(const float* lhs, float k,
+                                  float* target, int vertex_sz)
+{
+  for(int i = 0; i < vertex_sz; ++i)
+    target[i] = lhs[i] * k;
+}
+
+static inline void inc_vertex(float* target, float* inc, int vertex_sz)
+{
+  for(int i = 0; i < vertex_sz; ++i)
+    target[i] += inc[i];
+}
+
+// -------------------------------------------
+// -------------- Fixed stages ---------------
+// -------------------------------------------
+void GraphicPipeline::vertex_processing()
+{
   // TODO: instead of managing indices, use iterating pointers!
   // vertex processing stage. v stores the starting address of a new
   // vertex in vbuffer_in and v_id the actual "id" of this very same vertex
@@ -109,9 +144,11 @@ void GraphicPipeline::render(Framebuffer& render_target)
     vbuffer[vbuffer_elem + vbuffer_elem_sz-1] = 1.0f;
   }
 
-  // triangle clipping
-  //this->vbuffer_sz = vbuffer_in_sz + n_vertices;
-  //this->tri_sz = 3*(vertex_size+1);
+  return;
+}
+
+int GraphicPipeline::primitive_clipping()
+{
   int non_clipped = 0;
   for(int t = 0; t < vbuffer_sz; t += tri_sz)
   {
@@ -170,22 +207,31 @@ void GraphicPipeline::render(Framebuffer& render_target)
     }
   }
 
-  // update vertex buffer size (there will be garbage by the
-  // end of the vector, but this isn't a problem).
-  vbuffer_sz = non_clipped;
+  return non_clipped;
+}
 
-  // perspective division
+void GraphicPipeline::perspective_division()
+{
+  // loop over each element (each vertex) inside
+  // the vertex buffer, dividing it by w (which
+  // we know to be the fourth element of the array).
   for(int v_id = 0; v_id < vbuffer_sz; v_id += vbuffer_elem_sz)
   {
     float *v = &vbuffer[v_id];
     float w = v[3];
 
-    for(int i = 0; i < vbuffer_elem_sz; ++i) v[i] /= w;
+    for(int i = 0; i < vbuffer_elem_sz; ++i)
+      v[i] /= w;
   }
 
-  // triangle culling
-  //TODO: In OpenGL architecture, culling happens in the primitive
-  //assembly stage, which is the first part of rasterization
+  return;
+}
+
+int GraphicPipeline::primitive_culling()
+{
+  // loop over each primitive, check whether
+  // it is frontfacing or backfacing and then
+  // if it should be culled
   int non_culled = 0;
   for(int t = 0; t < vbuffer_sz; t += tri_sz)
   {
@@ -214,32 +260,7 @@ void GraphicPipeline::render(Framebuffer& render_target)
     }
   }
 
-  // update vbuffer size
-  vbuffer_sz = non_culled;
-
-  this->rasterization(render_target);
-}
-
-// --------------------------------
-// --------------------------------
-static inline void sub_vertex(const float* lhs, const float* rhs,
-                              float* target, int vertex_sz)
-{
-  for(int i = 0; i < vertex_sz; ++i)
-    target[i] = lhs[i] - rhs[i];
-}
-
-static inline void scalar_vertex(const float* lhs, float k,
-                                  float* target, int vertex_sz)
-{
-  for(int i = 0; i < vertex_sz; ++i)
-    target[i] = lhs[i] * k;
-}
-
-static inline void inc_vertex(float* target, float* inc, int vertex_sz)
-{
-  for(int i = 0; i < vertex_sz; ++i)
-    target[i] += inc[i];
+  return non_culled;
 }
 
 void GraphicPipeline::rasterization(Framebuffer& render_target)

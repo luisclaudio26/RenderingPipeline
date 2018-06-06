@@ -37,7 +37,10 @@ private:
   // this is the actual vertex buffer we'll be working in.
   // vbuffer_elem_sz defines the size of a single element
   // inside vbuffer (i.e., it includes the W parameter used
-  // for interpolation and vertex position is stored as 4 floats)
+  // for interpolation and vertex position is stored as 4 floats).
+  // All sizes here are expressed in NUMBER OF FLOATS, so
+  // if each vertex has XYZW position only and we have 10 vertices,
+  // vbuffer_elem_sz = 4, tri_sz = 3*4 = 12 and vbuffer_sz = 10*12 = 120
   float *vbuffer;
   int vbuffer_sz;
   int vbuffer_elem_sz;
@@ -55,6 +58,10 @@ private:
   VertexShader vshader;
 
   // fixed stages
+  void vertex_processing();
+  int primitive_clipping();
+  void perspective_division();
+  int primitive_culling();
   void rasterization(Framebuffer& render_target);
 
 public:
