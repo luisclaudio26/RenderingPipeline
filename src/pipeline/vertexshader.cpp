@@ -24,4 +24,10 @@ void VertexShader::launch(const float* vertex_in, float* vertex_out,
   const float *normal = &vertex_in[normal_id.stride];
 
   memcpy(&vertex_out[normal_id.stride], normal, sizeof(float)*4);
+
+  // forward tex coordinates
+  Attribute tex_id = (*attribs)["texcoord"];
+  const float *texcoord = &vertex_in[tex_id.stride];
+
+  memcpy(&vertex_out[tex_id.stride], texcoord, sizeof(float)*2);
 }

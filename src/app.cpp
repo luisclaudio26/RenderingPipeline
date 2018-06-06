@@ -39,6 +39,10 @@ Engine::Engine(const char* path)
     mesh_data.push_back(n(0));
     mesh_data.push_back(n(1));
     mesh_data.push_back(n(2));
+
+    Eigen::Vector2f t = mesh.mUV.col(i);
+    mesh_data.push_back(t(0));
+    mesh_data.push_back(t(1));
   }
 
   mesh.transform_to_center(model);
@@ -46,9 +50,10 @@ Engine::Engine(const char* path)
   // ---------------------------------------------
   // ---------- Upload data to pipeline ----------
   // ---------------------------------------------
-  gp.upload_data(mesh_data, 6);
+  gp.upload_data(mesh_data, 8);
   gp.define_attribute("pos", 3, 0);
   gp.define_attribute("normal", 3, 3);
+  gp.define_attribute("texcoord", 2, 6);
 
   // ----------------------------------
   // ---------- Framebuffers ----------
