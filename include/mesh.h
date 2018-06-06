@@ -18,7 +18,7 @@ struct Elem
 class Mesh
 {
 public:
-  Eigen::MatrixXf mPos, mNormal, mAmb, mDiff, mSpec, mShininess;
+  Eigen::MatrixXf mPos, mNormal, mUV, mAmb, mDiff, mSpec, mShininess;
   std::vector<Triangle> tris;
 
   Mesh() {}

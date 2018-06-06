@@ -71,6 +71,7 @@ void Mesh::load_file(const std::string& path)
   fscanf(file, "# triangles = %d\n", &n_tris);
   mPos = Eigen::MatrixXf(3, 3*n_tris);
   mNormal = Eigen::MatrixXf(3, 3*n_tris);
+  mUV = Eigen::MatrixXf(2, 3*n_tris);
   mAmb = Eigen::MatrixXf(3, 3*n_tris);
   mDiff = Eigen::MatrixXf(3, 3*n_tris);
   mSpec = Eigen::MatrixXf(3, 3*n_tris);
@@ -91,8 +92,9 @@ void Mesh::load_file(const std::string& path)
     fscanf(file, "material shine %f\n", &cur.shininess);
   }
 
-  //5. spurious line
-  fscanf(file, "-- 3*[pos(x,y,z) normal(x,y,z) color_index] face_normal(x,y,z)\n");
+  //5. spurious lines
+  fscanf(file, "Texture = YES\n");
+  fscanf(file, "-- 3*[pos(x,y,z) normal(x,y,z) color_index text_coord] face_normal(x,y,z)\n");
 
   //6. triangles (groups of 4 lines describing per vertex data and normal)
   int tri_index = 0;
@@ -100,9 +102,15 @@ void Mesh::load_file(const std::string& path)
   {
     //Triangle& cur = tris[i];
     int m_index_v0;
-    fscanf(file, "v0 %f %f %f %f %f %f %d\n", &mPos(0, tri_index+0), &mPos(1, tri_index+0), &mPos(2, tri_index+0),
-                                              &mNormal(0, tri_index+0), &mNormal(1, tri_index+0), &mNormal(2, tri_index+0),
-                                              &m_index_v0);
+    fscanf(file, "v0 %f %f %f %f %f %f %d %f %f\n", &mPos(0, tri_index+0),
+                                                    &mPos(1, tri_index+0),
+                                                    &mPos(2, tri_index+0),
+                                                    &mNormal(0, tri_index+0),
+                                                    &mNormal(1, tri_index+0),
+                                                    &mNormal(2, tri_index+0),
+                                                    &m_index_v0,
+                                                    &mUV(0, tri_index+0),
+                                                    &mUV(1, tri_index+0));
 
     Material mv0 = mats_buffer[m_index_v0];
     mAmb.col(tri_index)<<mv0.a[0], mv0.a[1], mv0.a[2];
@@ -111,9 +119,15 @@ void Mesh::load_file(const std::string& path)
     mShininess.col(tri_index)<<mv0.shininess;
 
     int m_index_v1;
-    fscanf(file, "v1 %f %f %f %f %f %f %d\n", &mPos(0, tri_index+1), &mPos(1, tri_index+1), &mPos(2, tri_index+1),
-                                              &mNormal(0, tri_index+1), &mNormal(1, tri_index+1), &mNormal(2, tri_index+1),
-                                              &m_index_v1);
+    fscanf(file, "v1 %f %f %f %f %f %f %d %f %f\n", &mPos(0, tri_index+1),
+                                                    &mPos(1, tri_index+1),
+                                                    &mPos(2, tri_index+1),
+                                                    &mNormal(0, tri_index+1),
+                                                    &mNormal(1, tri_index+1),
+                                                    &mNormal(2, tri_index+1),
+                                                    &m_index_v1,
+                                                    &mUV(0, tri_index+1),
+                                                    &mUV(1, tri_index+1));
 
     Material mv1 = mats_buffer[m_index_v1];
     mAmb.col(tri_index+1)<<mv1.a[0], mv1.a[1], mv1.a[2];
@@ -122,9 +136,15 @@ void Mesh::load_file(const std::string& path)
     mShininess.col(tri_index+1)<<mv1.shininess;
 
     int m_index_v2;
-    fscanf(file, "v2 %f %f %f %f %f %f %d\n", &mPos(0, tri_index+2), &mPos(1, tri_index+2), &mPos(2, tri_index+2),
-                                              &mNormal(0, tri_index+2), &mNormal(1, tri_index+2), &mNormal(2, tri_index+2),
-                                              &m_index_v2);
+    fscanf(file, "v2 %f %f %f %f %f %f %d %f %f\n", &mPos(0, tri_index+2),
+                                                    &mPos(1, tri_index+2),
+                                                    &mPos(2, tri_index+2),
+                                                    &mNormal(0, tri_index+2),
+                                                    &mNormal(1, tri_index+2),
+                                                    &mNormal(2, tri_index+2),
+                                                    &m_index_v2,
+                                                    &mUV(0, tri_index+2),
+                                                    &mUV(1, tri_index+2));
 
     Material mv2 = mats_buffer[m_index_v2];
     mAmb.col(tri_index+2)<<mv2.a[0], mv2.a[1], mv2.a[2];

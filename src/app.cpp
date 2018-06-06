@@ -14,7 +14,7 @@ Engine::Engine(const char* path)
   sin_angle_step = float(sin(angle_step));
 
   lock_view = false;
-  cull_back = false;
+  cull_back = true;
 
   // Load model and unpack.
   // The first version packs mesh data into
