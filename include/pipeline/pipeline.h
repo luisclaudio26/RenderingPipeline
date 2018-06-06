@@ -9,6 +9,7 @@
 #include "vertexshader.h"
 #include "fragmentshader.h"
 #include "attribute.h"
+#include "texsampler.h"
 
 class GraphicPipeline
 {
@@ -51,6 +52,13 @@ private:
   // by knowing its size and stride. We store this info
   // so it can be accessed later by the shaders
   std::map<std::string, Attribute> attribs;
+
+  // each texture unit is a texture sampler which can
+  // receive a TEXTURE and some texture-related configuration
+  // (filtering method and wrap function). Shaders access
+  // this via a texture unit ID which is usually passed as
+  // uniform.
+  std::vector<TextureSampler> tex_units;
 
   // Uniform matrices
   mat4 model, view, projection, viewport;

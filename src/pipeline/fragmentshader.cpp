@@ -12,6 +12,11 @@ rgba FragmentShader::launch(const float* vertex_in)
   Attribute tex_id = (*attribs)["texcoord"];
   const float *texcoord = &vertex_in[4 + tex_id.stride];
 
+  // TEXTURE SAMPLING
+  // 1. receive a texture unit ID as uniform
+  // 2. retrieve texture sampler using this ID and the texture manager
+  // 3. sample using texcoord
+
   return rgba(texcoord[0],
               texcoord[1],
               0.0f,

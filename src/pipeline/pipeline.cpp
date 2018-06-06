@@ -12,6 +12,7 @@ GraphicPipeline::GraphicPipeline()
   // having to update it on two places manually.
   vshader.attribs = &attribs;
   fshader.attribs = &attribs;
+  fshader.tex_units = &tex_units;
 }
 
 GraphicPipeline::~GraphicPipeline()

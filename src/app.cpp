@@ -267,6 +267,9 @@ void Engine::drawContents()
   fbo.clearDepthBuffer();
   fbo.clearColorBuffer();
 
+  // TEXTURE SAMPLING
+  // 1. Bind a loaded texture to a given texture unit
+  // 2. Bind texture unit id to uniform
   gp.upload_uniform(model, view, proj, viewport);
   gp.render(fbo, cull_back);
 
