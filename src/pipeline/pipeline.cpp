@@ -6,6 +6,9 @@
 GraphicPipeline::GraphicPipeline()
   : vbuffer_in(NULL), vbuffer(NULL), vertex_size(0)
 {
+  // preallocate some texture units
+  tex_units.resize(10);
+
   // both the vertex and fragment shader store only
   // a pointer to the actual attribute dictionary.
   // This complicates things a bit but spare us of
