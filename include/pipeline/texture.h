@@ -1,6 +1,8 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
+#include "../matrix.h"
+
 class Texture
 {
 public:
@@ -10,7 +12,7 @@ public:
   Texture();
   ~Texture();
   void load_from_file(const char* path);
-  const unsigned char* texel(int i, int j) const;
+  rgba texel(int i, int j) const;
 };
 
 #endif

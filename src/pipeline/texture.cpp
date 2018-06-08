@@ -14,8 +14,13 @@ void Texture::load_from_file(const char* path)
   data = stbi_load(path, &w, &h, &n, 0);
 }
 
-const unsigned char* Texture::texel(int i, int j) const
+rgba Texture::texel(int i, int j) const
 {
-  int p = n*(i*w+j);
-  return (const unsigned char*)&data[p];
+  int add = n*(i*w+j);
+  unsigned char* t = &data[add];
+
+  rgba out(t[0]/255.0f, t[1]/255.0f, t[2]/255.0f, 1.0f);
+  if(n == 4) out(4) = t[3]/255.0f;
+
+  return out;
 }

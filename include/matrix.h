@@ -66,6 +66,7 @@ public:
   vec4 operator+(const vec4& rhs) const;
   vec4 operator-() const;
   vec4 operator-(const vec4& rhs) const;
+  vec4 operator*(float k) const;
   float dot(const vec4& rhs) const;
   vec4 cross(const vec4& rhs) const;
   vec4 unit() const;

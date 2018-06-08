@@ -14,6 +14,8 @@ public:
   Filter f;
 
   rgba sample2D(float u, float v) const;
+
+  TextureSampler() : f(Bilinear) {}
 };
 
 #endif

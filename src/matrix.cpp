@@ -108,6 +108,11 @@ vec4 vec4::operator-(const vec4& rhs) const
   return (*this) + (-rhs);
 }
 
+vec4 vec4::operator*(float k) const
+{
+  return vec4(k*e[0], k*e[1], k*e[2], k*e[3]);
+}
+
 float vec4::dot(const vec4& rhs) const
 {
   float acc = 0.0f;
