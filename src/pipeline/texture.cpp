@@ -13,3 +13,9 @@ void Texture::load_from_file(const char* path)
 {
   data = stbi_load(path, &w, &h, &n, 0);
 }
+
+const unsigned char* Texture::texel(int i, int j) const
+{
+  int p = n*(i*w+j);
+  return (const unsigned char*)&data[p];
+}

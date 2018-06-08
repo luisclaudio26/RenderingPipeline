@@ -10,6 +10,7 @@ public:
   Texture();
   ~Texture();
   void load_from_file(const char* path);
+  const unsigned char* texel(int i, int j) const;
 };
 
 #endif
