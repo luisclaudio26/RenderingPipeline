@@ -12,7 +12,7 @@ class FragmentShader
 {
 private:
 public:
-  rgba launch(const float* vertex_in);
+  rgba launch(const float* vertex_in, const float* dV_dx, int n);
 
   std::vector<TextureSampler> *tex_units;
   std::map<std::string, Attribute> *attribs;

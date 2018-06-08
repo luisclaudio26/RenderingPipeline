@@ -1,6 +1,7 @@
 #include "../../include/pipeline/fragmentshader.h"
+#include <cmath>
 
-rgba FragmentShader::launch(const float* vertex_in)
+rgba FragmentShader::launch(const float* vertex_in, const float* dV_dx, int n)
 {
   // TODO: make this more user friendly! We should not
   // have to type 4 + stride everytime (the user should
@@ -11,6 +12,8 @@ rgba FragmentShader::launch(const float* vertex_in)
 
   Attribute tex_id = (*attribs)["texcoord"];
   const float *texcoord = &vertex_in[4 + tex_id.stride];
+
+  //level = (float)(log2(std::max((ds*tex_width), (dt*tex_height))) / log(2.0));
 
   // TEXTURE SAMPLING
   // [ ] receive a texture unit ID as uniform

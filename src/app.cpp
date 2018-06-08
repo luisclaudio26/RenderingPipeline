@@ -52,6 +52,7 @@ Engine::Engine(const char* path)
 
   // load textures
   checker.load_from_file("../data/mandrill_256.jpg");
+  checker.compute_mips();
 
   // ---------------------------------------------
   // ---------- Upload data to pipeline ----------

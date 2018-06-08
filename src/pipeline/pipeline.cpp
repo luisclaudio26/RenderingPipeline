@@ -316,6 +316,7 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
   float *dV_dx = new float[vbuffer_elem_sz];  //horizontal increment
   float *f = new float[vbuffer_elem_sz];      //bilinearly interpolated fragment
   float *frag = new float[vbuffer_elem_sz];   //persective interpolated fragment
+  float *jac_x = new float[vbuffer_elem_sz];  //persective interpolated derivatives
 
   for(int t = 0; t < vbuffer_sz; t += tri_sz)
   {
@@ -327,7 +328,7 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
     //with integer coordinates, otherwise we'll have displacements
     //for start and end which are huge when 0 < dy < 1;
     //these cases must be treated as straight, horizontal lines.
-    //TODO: SEEMS CORRECT, BUT THIS JUST SHITTY
+    //TODO: THIS IS CORRECT BUT CODE IS SHITTY
     vec4 pos0 = viewport*vec4(v0_[0], v0_[1], 1.0f, 1.0f);
     X(v0) = ROUND(pos0(0)); Y(v0) = ROUND(pos0(1));
     Z(v0) = v0_[2]; W(v0) = v0_[vbuffer_elem_sz-1];
@@ -442,7 +443,6 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
       scalar_vertex(dV_dx, 1.0f/(e-s), dV_dx, vbuffer_elem_sz);
 
       // initialize the actual fragment
-      //memcpy(f, start, vbuffer_elem_sz*sizeof(float));
       MOVE(start, f);
 
       for(int x = s; x <= e; ++x)
@@ -482,11 +482,12 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
           render_target.setDepthBuffer(y, x, Z(f));     // early fragment tests
 
           // perspectively-correct interpolation of attributes
-          // TODO: not sure if I can do this
+          // and derivatives
           scalar_vertex(f, 1.0f/W(f), frag, vbuffer_elem_sz);
+          scalar_vertex(dV_dx, 1.0f/W(f), jac_x, vbuffer_elem_sz);
 
           // invoke fragment shader for the interpolated fragment
-          rgba frag_color = fshader.launch(frag);
+          rgba frag_color = fshader.launch(frag, jac_x, vbuffer_elem_sz);
 
           // write to framebuffer
           RGBA8 color_ubyte;
@@ -509,8 +510,6 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
       if( y == (int)Y(v1) ) *next_active_edge = dV2_dy;
 
       //increment bounds
-      //TODO: Start and End may point to the same cell!
-      //we should allocate different buffers for them!
       inc_vertex(start, dStart_dy, vbuffer_elem_sz);
       inc_vertex(end, dEnd_dy, vbuffer_elem_sz);
     }
@@ -528,4 +527,5 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
   delete[] f;
   delete[] frag;
   delete[] dV_dx;
+  delete[] jac_x;
 }

@@ -3,7 +3,6 @@
 
 #include "../matrix.h"
 #include "texture.h"
-#include <cmath>
 
 class TextureSampler
 {
@@ -13,9 +12,9 @@ public:
   const Texture* tex_data;
   Filter f;
 
+  void compute_mipmap();
   rgba sample2D(float u, float v) const;
-
-  TextureSampler() : f(Bilinear) {}
+  TextureSampler() : f(Trilinear) {}
 };
 
 #endif
