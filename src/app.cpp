@@ -3,6 +3,9 @@
 Engine::Engine(const char* path)
   : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test")
 {
+  // --------------------------------
+  // --------- Scene setup ----------
+  // --------------------------------
   eye = vec3(0.0f, 0.0f, 0.0f);
   up = vec3(0.0f, 1.0f, 0.0f);
   look_dir = vec3(0.0f, 0.0f, -1.0f);
@@ -46,6 +49,9 @@ Engine::Engine(const char* path)
   }
 
   mesh.transform_to_center(model);
+
+  // load textures
+  checker.load_from_file("../data/mandrill_256.jpg");
 
   // ---------------------------------------------
   // ---------- Upload data to pipeline ----------
@@ -268,8 +274,10 @@ void Engine::drawContents()
   fbo.clearColorBuffer();
 
   // TEXTURE SAMPLING
-  // 1. Bind a loaded texture to a given texture unit
-  // 2. Bind texture unit id to uniform
+  // [X] Bind a loaded texture to a given texture unit
+  // [ ] Bind texture unit id to uniform
+  gp.bind_tex_unit(checker, 0);
+
   gp.upload_uniform(model, view, proj, viewport);
   gp.render(fbo, cull_back);
 

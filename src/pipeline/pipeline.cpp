@@ -24,6 +24,11 @@ GraphicPipeline::~GraphicPipeline()
   if(vbuffer) delete[] vbuffer;
 }
 
+void GraphicPipeline::bind_tex_unit(const Texture& tex, int unit)
+{
+  tex_units[unit].tex_data = &tex;
+}
+
 void GraphicPipeline::upload_data(const std::vector<float>& data, int vertex_size)
 {
   int n_floats = data.size();

@@ -11,6 +11,7 @@
 #include <nanogui/combobox.h>
 
 #include "../include/pipeline/pipeline.h"
+#include "../include/pipeline/texture.h"
 #include "../include/mesh.h"
 
 const int DEFAULT_WIDTH = 960;
@@ -25,6 +26,7 @@ private:
 
   // scene info
   Mesh mesh; mat4 model;
+  Texture checker;
 
   vec3 eye, right, up, look_dir;
   float step, angle_step, cos_angle_step, sin_angle_step;

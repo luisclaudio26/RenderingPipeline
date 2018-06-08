@@ -78,6 +78,13 @@ public:
   GraphicPipeline();
   ~GraphicPipeline();
 
+  // binds a given texture object to the target unit, so
+  // when using the sampler2D method of this texture unit
+  // we'll be sampling the binded texture.
+  // this is simple binding, no copies involved, so deleting
+  // the texture and then trying to use it will probably crash!
+  void bind_tex_unit(const Texture& tex, int unit);
+
   // this should be as flexible as the attribute system,
   // but for simplicity we're gonna store only the main
   // uniform matrices.
