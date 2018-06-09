@@ -6,7 +6,10 @@
 class Texture
 {
 public:
-  int w, h, n;
+  // we assume textures are square, so no
+  // need for both width and height.
+  // n is the number of channels.
+  int l, n;
 
   // data holds not only the original image
   // but also the MIP levels. This means that
