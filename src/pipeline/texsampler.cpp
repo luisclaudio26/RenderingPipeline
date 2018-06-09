@@ -40,8 +40,11 @@ rgba TextureSampler::sample2D(float u, float v) const
 
     case Trilinear:
     {
+      int i = (int)( v*(tex_data->l/8-1) );
+      int j = (int)( u*(tex_data->l/8-1) );
 
-      out = rgba(1.0f, 0.0f, 0.0f, 1.0f);
+      out = tex_data->texel(i,j,3);
+
       break;
     }
   }

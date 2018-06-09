@@ -22,7 +22,7 @@ public:
   ~Texture();
   void load_from_file(const char* path);
   void compute_mips();
-  rgba texel(int i, int j) const;
+  rgba texel(int i, int j, int level = 0) const;
 };
 
 #endif

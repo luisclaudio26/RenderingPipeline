@@ -2,7 +2,26 @@
 #include "../../3rdparty/stb_image.h"
 #include "../../include/pipeline/texture.h"
 #include <cstring>
+#include <cstdio>
 
+// -----------------------------
+// --------- internal ----------
+// -----------------------------
+static void average_4(const unsigned char* P1, const unsigned char* P2,
+                      const unsigned char* P3, const unsigned char* P4,
+                      unsigned char* target, int n_channels)
+{
+  for(int i = 0; i < n_channels; ++i)
+  {
+    // compute the average and round to nearest integer
+    int acc = (int)P1[i] + (int)P2[i] + (int)P3[i] + (int)P4[i];
+    target[i] = (unsigned char)(acc*0.25+0.5f);
+  }
+}
+
+// -----------------------------------
+// --------- From texture.h ----------
+// -----------------------------------
 Texture::Texture() : data(NULL), l(0), n(0) { }
 
 Texture::~Texture()
@@ -44,41 +63,56 @@ void Texture::compute_mips()
 {
   if(!data) return;
 
-  // a buffer to hold averaged columns before
-  // we average its rows
-  unsigned char* aux = new unsigned char[n*l*l];
+  #define AT(r,c,s) ((n)*((r)*(s)+(c)))
 
-  // data_ind stores the location in data
-  // buffer where we should store the next MIP level.
-  // data_last stores the last MIP level.
-  int data_ind = n*l*l, data_last = 0;
+  // sz stores the size of the MIP level we're reducing now
+  unsigned char* cur_level = &data[0];
+  unsigned char* next_level = &data[n*l*l];
+  int sz = l, half_sz = l/2;
 
-  for(int i = 0, sz = l; i < n; ++i, sz /= 2)
+  // keep reducing image until we have a single pixel
+  while( sz > 1 )
   {
-    // loop over columns computing their average
-    for(int col = 0, aux_i = 0;
-        col < n*sz;
-        col += 2*n, aux_i += n)
-    {
-      // average of neighboring texels
-      for(int k = 0; k < 4; ++k)
-        aux[aux_i+k] = (data[data_last+col+k] + data[data_last+col+n+k])*0.5f;
-    }
+    // reduce cur_level and write to next_level
+    for(int row = 0, r_out = 0; row < sz; row += 2, ++r_out)
+      for(int col = 0, c_out = 0; col < sz; col += 2, ++c_out)
+      {
+        // fetch the four pixels we'll average to filter the image
+        unsigned char *P1, *P2, *P3, *P4;
+        P1 = &cur_level[AT(row,col,sz)];
+        P2 = &cur_level[AT(row,col+1,sz)];
+        P3 = &cur_level[AT(row+1,col,sz)];
+        P4 = &cur_level[AT(row+1,col+1,sz)];
 
-    // loop over rows, computing its average
-    // TODO: loopar nas colunas de AUX e salvar a média
-    // em DATA a partir de DATA_IND
+        // average out and write to the next level
+        average_4(P1, P2, P3, P4, &next_level[AT(r_out,c_out,half_sz)], n);
+      }
 
-    memcpy(&data[ind], aux, sizeof(unsigned char)*n*sz*sz);
+    // dimensions and offsets for next reduction
+    cur_level = next_level;
+    next_level += n*half_sz*half_sz;
+    sz = half_sz; half_sz = sz/2;
   }
-
-
-  delete[] aux;
 }
 
-rgba Texture::texel(int i, int j) const
+rgba Texture::texel(int i, int j, int level) const
 {
-  int add = n*(i*l+j);
+  int l_ = l; //size of the k-th level
+
+  // the mip levels are stored sequencially, so we need
+  // to retrieve the starting address of the k-th image.
+  // a bit of arithmetic leads us to the following formula:
+  //
+  //  add = l² n 4 (1 - 1/(4^k)) / 3
+  //
+  // which is not all intuitive. we'll just do a loop
+  // summing sizes up to the level we want, because it is
+  // easier to understand.
+  int offset = 0;
+  for(int k = 0; k < level; ++k, l_ /= 2)
+    offset += n*l_*l_;
+
+  int add = offset + n*(i*l_+j);
   unsigned char* t = &data[add];
 
   rgba out(t[0]/255.0f, t[1]/255.0f, t[2]/255.0f, 1.0f);

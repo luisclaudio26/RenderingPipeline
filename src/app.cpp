@@ -268,7 +268,7 @@ void Engine::drawContents()
   //proj and viewport could be precomputed!
   mat4 view = mat4::view(eye, eye + look_dir, up);
 
-  mat4 proj = mat4::perspective(45.0f, 45.0f, 1.0f, 10.0f);
+  mat4 proj = mat4::perspective(45.0f, 45.0f, 0.5f, 50.0f);
   mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
 
   fbo.clearDepthBuffer();
