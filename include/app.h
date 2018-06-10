@@ -1,15 +1,7 @@
-#include <nanogui/opengl.h>
-#include <nanogui/glutil.h>
-#include <nanogui/screen.h>
-#include <nanogui/window.h>
-#include <nanogui/layout.h>
-#include <nanogui/button.h>
-#include <nanogui/slider.h>
-#include <nanogui/label.h>
-#include <nanogui/checkbox.h>
-#include <nanogui/colorpicker.h>
-#include <nanogui/combobox.h>
+#ifndef APP_H
+#define APP_H
 
+#include <nanogui/screen.h>
 #include "pipeline/pipeline.h"
 #include "pipeline/texture.h"
 #include "mesh.h"
@@ -43,3 +35,5 @@ public:
   void draw(NVGcontext *ctx) override;
   void drawContents() override;
 };
+
+#endif

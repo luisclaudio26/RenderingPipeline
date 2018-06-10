@@ -1,10 +1,15 @@
 #include "../include/app.h"
 
-//#include <nanogui/opengl.h>
-//#include <nanogui/glutil.h>
-#include <nanogui/screen.h>
+#include <nanogui/opengl.h>
+#include <nanogui/glutil.h>
 #include <nanogui/window.h>
 #include <nanogui/layout.h>
+#include <nanogui/button.h>
+#include <nanogui/slider.h>
+#include <nanogui/label.h>
+#include <nanogui/checkbox.h>
+#include <nanogui/colorpicker.h>
+#include <nanogui/combobox.h>
 
 Engine::Engine(const char* path)
   : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test")
@@ -20,8 +25,8 @@ Engine::Engine(const char* path)
   param.cam.look_dir = glm::vec3(0.0f, 0.0f, -1.0f);
   param.cam.right = glm::vec3(1.0f, 0.0f, 0.0f);
   param.cam.step = 0.1f;
-  param.cam.near = 0.5f;
-  param.cam.far = 50.0f;
+  param.cam.near = 1.0f;
+  param.cam.far = 10.0f;
   param.cam.FoVy = 45.0f;
   param.cam.FoVx = 45.0f;
   param.cam.lock_view = false;
@@ -150,6 +155,87 @@ Engine::Engine(const char* path)
   shader.bind();
   shader.uploadAttrib<Eigen::MatrixXf>("quad_pos", quad);
   shader.uploadAttrib<Eigen::MatrixXf>("quad_uv", texcoord);
+
+  //----------------------------------
+  //----------- GUI setup ------------
+  //----------------------------------
+  using namespace nanogui;
+
+  Window* window = new Window(this, "Scene options");
+  window->setPosition(Vector2i(0, 0));
+  window->setLayout(new GroupLayout());
+
+  Button *reset_view = new Button(window, "Reset view");
+  reset_view->setTooltip("Reset view so the object will be centered again");
+  reset_view->setCallback( [this] { param.cam.up = glm::vec3(0.0f, 1.0f, 0.0f);
+                                    param.cam.look_dir = glm::vec3(0.0f, 0.0f, -1.0f);
+                                    param.cam.right = glm::vec3(1.0f, 0.0f, 0.0f);
+                                    param.cam.eye = glm::vec3(0.0f, 0.0f, 0.0f);
+                                    param.cam.near = 1.0f; param.cam.far = 10.0f;
+                                    param.cam.FoVy = 45.0f; param.cam.FoVx = 45.0f; });
+
+  new Label(window, "Near Z plane", "sans-bold");
+
+  Slider *near_plane = new Slider(window);
+  near_plane->setFixedWidth(100);
+  near_plane->setTooltip("Set near Z plane to any value between 0 and 20");
+  near_plane->setCallback( [this](float val) { param.cam.near = val * 20.0f; } );
+
+  new Label(window, "Far Z plane", "sans-bold");
+
+  Slider *far_plane = new Slider(window);
+  far_plane->setFixedWidth(100);
+  far_plane->setTooltip("Set near Z plane to any value between 10 and 100");
+  far_plane->setCallback( [this](float val) { param.cam.far = 10.0f + val * (100.0f - 10.0f); } );
+
+  new Label(window, "Field of view y (deg)", "sans-bold");
+
+  Slider *fovy = new Slider(window);
+  fovy->setFixedWidth(100);
+  fovy->setTooltip("Set the field of view in Y to any value between 2 and 150");
+  fovy->setCallback( [this](float val) { param.cam.FoVy = 2.0f + val * (150.0f - 2.0f); } );
+
+  new Label(window, "Field of view x (deg)", "sans-bold");
+
+  Slider *fovx = new Slider(window);
+  fovx->setFixedWidth(100);
+  fovx->setTooltip("Set the field of view in x to any value between 2 and 150");
+  fovx->setCallback( [this](float val) { param.cam.FoVx = 2.0f + val * (150.0f - 2.0f); } );
+
+  new Label(window, "Model color", "sans-bold");
+  ColorPicker *color_picker = new ColorPicker(window, param.model_color);
+  color_picker->setFinalCallback([this](const Color& c) { this->param.model_color = c.head<3>(); });
+
+  CheckBox *draw_cw = new CheckBox(window, "Draw triangles in CW order");
+  draw_cw->setTooltip("Uncheck this box for drawing triangles in CCW order");
+  draw_cw->setCallback([&](bool cw) { param.front_face = cw ? GL_CW : GL_CCW; });
+
+  CheckBox *lock_view = new CheckBox(window, "Lock view on the model");
+  lock_view->setTooltip("Lock view point at the point where the model is centered. This will disable camera rotation.");
+  lock_view->setCallback([&](bool lock) { param.cam.lock_view = lock;
+                                          param.cam.look_dir = glm::normalize(glm::vec3(0.0f, 0.0f, -5.5f) - param.cam.eye);
+                                          param.cam.right = glm::cross(param.cam.look_dir, param.cam.up);
+                                        });
+
+  ComboBox *draw_mode = new ComboBox(window, {"Points", "Wireframe", "Fill"});
+  draw_mode->setCallback([&](int opt) {
+                          switch(opt)
+                          {
+                            case 0: param.draw_mode = GL_POINT; break;
+                            case 1: param.draw_mode = GL_LINE; break;
+                            case 2: param.draw_mode = GL_FILL; break;
+                          } });
+
+  ComboBox *shading_model = new ComboBox(window, {"GouraudAD", "GouraudADS", "PhongADS", "No shading"});
+  shading_model->setCallback([&](int opt) {
+                              switch(opt)
+                              {
+                                case 0: param.shading = 0; break;
+                                case 1: param.shading = 1; break;
+                                case 2: param.shading = 2; break;
+                                case 3: param.shading = 3; break;
+                              } });
+
 
   // ------------------------------------
   // -------- OpenGL comparison ---------
@@ -292,7 +378,7 @@ void Engine::drawContents()
   //--------------------------------
   //proj and viewport could be precomputed!
   mat4 view = mat4::view(param.cam.eye, param.cam.eye + param.cam.look_dir, param.cam.up);
-  mat4 proj = mat4::perspective(param.cam.FoVx, param.cam.FoVy,
+  mat4 proj = mat4::perspective(param.cam.FoVy, param.cam.FoVx,
                                 param.cam.near, param.cam.far);
   mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
 
