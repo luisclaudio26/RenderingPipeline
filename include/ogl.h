@@ -7,24 +7,25 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
-//#include "../include/mesh.h"
-//#include "../include/param.h"
+#include "../include/mesh.h"
+#include "../include/param.h"
 
 class OGL : public nanogui::GLCanvas
 {
 private:
   nanogui::GLShader shader;
+
   Mesh model;
+  glm::mat4 model2world;
 
   //rigorously this should be a const
   //reference, but had problems with
   //Eigen::Map and this will be hotfix for it
-  GlobalParameters& param;
+  SceneParameters& param;
 
 public:
-  OGL(GlobalParameters& param,
-      const char* path,
-      Widget *parent);
+  OGL(SceneParameters& param,
+      const char* path, Widget *parent);
 
   float framerate;
 

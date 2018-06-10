@@ -10,9 +10,10 @@
 #include <nanogui/colorpicker.h>
 #include <nanogui/combobox.h>
 
-#include "../include/pipeline/pipeline.h"
-#include "../include/pipeline/texture.h"
-#include "../include/mesh.h"
+#include "pipeline/pipeline.h"
+#include "pipeline/texture.h"
+#include "mesh.h"
+#include "ogl.h"
 
 const int DEFAULT_WIDTH = 960;
 const int DEFAULT_HEIGHT = 540;
@@ -28,16 +29,12 @@ private:
   Mesh mesh; mat4 model;
   Texture checker;
 
-  vec3 eye, right, up, look_dir;
-  float step, angle_step, cos_angle_step, sin_angle_step;
-
-  bool lock_view, cull_back;
-
   //display stuff
   nanogui::GLShader shader;
   GLuint color_gpu;
 
   //comparison window
+  SceneParameters param;
   OGL *ogl;
 
 public:

@@ -6,18 +6,24 @@ Engine::Engine(const char* path)
   // --------------------------------
   // --------- Scene setup ----------
   // --------------------------------
-  eye = vec3(0.0f, 0.0f, 0.0f);
-  up = vec3(0.0f, 1.0f, 0.0f);
-  look_dir = vec3(0.0f, 0.0f, -1.0f);
-  right = vec3(1.0f, 0.0f, 0.0f);
-  step = 0.1f;
-
-  angle_step = 0.0174533f;
-  cos_angle_step = float(cos(angle_step));
-  sin_angle_step = float(sin(angle_step));
-
-  lock_view = false;
-  cull_back = true;
+  float angle = 0.0174533f;
+  param.cam.eye = glm::vec3(0.0f, 0.0f, 0.0f);
+  param.cam.up = glm::vec3(0.0f, 1.0f, 0.0f);
+  param.cam.cos_angle = (float)cos(angle);
+  param.cam.sin_angle = (float)sin(angle);
+  param.cam.look_dir = glm::vec3(0.0f, 0.0f, -1.0f);
+  param.cam.right = glm::vec3(1.0f, 0.0f, 0.0f);
+  param.cam.step = 0.1f;
+  param.cam.near = 0.5f;
+  param.cam.far = 50.0f;
+  param.cam.FoVy = 45.0f;
+  param.cam.FoVx = 45.0f;
+  param.cam.lock_view = false;
+  param.front_face = GL_CCW;
+  param.draw_mode = GL_FILL;
+  param.model_color<<0.0f, 0.0f, 1.0f;
+  param.light<<0.0f, 2.5f, 0.0f;
+  param.shading = 0;
 
   // Load model and unpack.
   // The first version packs mesh data into
@@ -142,7 +148,7 @@ Engine::Engine(const char* path)
   // ------------------------------------
   // -------- OpenGL comparison ---------
   // ------------------------------------
-  
+
 }
 
 bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
@@ -151,107 +157,107 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
 
   //camera movement
   if(key == GLFW_KEY_A && action == GLFW_REPEAT) {
-    eye += (-right) * step;
-    if(lock_view)
+    param.cam.eye += (-param.cam.right) * param.cam.step;
+    if(param.cam.lock_view)
     {
-      look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
-      right = look_dir.cross(up);
+      param.cam.look_dir = glm::normalize(glm::vec3(0.0f, 0.0f, -5.5f) - param.cam.eye);
+      param.cam.right = glm::cross(param.cam.look_dir, param.cam.up);
     }
     return true;
   }
   if(key == GLFW_KEY_D && action == GLFW_REPEAT) {
-    eye += right * step;
-    if(lock_view)
+    param.cam.eye += param.cam.right * param.cam.step;
+    if(param.cam.lock_view)
     {
-      look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
-      right = look_dir.cross(up);
+      param.cam.look_dir = glm::normalize(glm::vec3(0.0f, 0.0f, -5.5f) - param.cam.eye);
+      param.cam.right = glm::cross(param.cam.look_dir, param.cam.up);
     }
     return true;
   }
   if( key == GLFW_KEY_W && action == GLFW_REPEAT ) {
-    eye += look_dir * step;
-    //if(lock_view) look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
+    param.cam.eye += param.cam.look_dir * param.cam.step;
+    //if(param.cam.param.cam.lock_view) param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
     return true;
   }
   if( key == GLFW_KEY_S && action == GLFW_REPEAT ) {
-    eye += look_dir * (-step);
-    //if(lock_view) look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
+    param.cam.eye += param.cam.look_dir * (-param.cam.step);
+    //if(param.cam.param.cam.lock_view) param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
     return true;
   }
   if( key == GLFW_KEY_R && action == GLFW_REPEAT ) {
-    eye += up * step;
-    if(lock_view)
+    param.cam.eye += param.cam.up * param.cam.step;
+    if(param.cam.lock_view)
     {
-      look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
-      up = right.cross(look_dir);
+      param.cam.look_dir = glm::normalize(glm::vec3(0.0f, 0.0f, -5.5f) - param.cam.eye);
+      param.cam.up = glm::cross(param.cam.right, param.cam.look_dir);
     }
 
     return true;
   }
   if( key == GLFW_KEY_F && action == GLFW_REPEAT ) {
-    eye += (-up) * step;
-    if(lock_view)
+    param.cam.eye += (-param.cam.up) * param.cam.step;
+    if(param.cam.lock_view)
     {
-      look_dir = (vec3(0.0f, 0.0f, -5.5f) - eye).unit();
-      up = right.cross(look_dir);
+      param.cam.look_dir = glm::normalize(glm::vec3(0.0f, 0.0f, -5.5f) - param.cam.eye);
+      param.cam.up = glm::cross(param.cam.right, param.cam.look_dir);
     }
     return true;
   }
 
   //TODO: we can precompute sin and cos values!
   if( key == GLFW_KEY_U && action == GLFW_REPEAT ) {
-    if(lock_view) return true;
+    if(param.cam.lock_view) return true;
 
-    vec3 u = look_dir, v = up;
-    look_dir = u*cos_angle_step + v*sin_angle_step;
-    up = -u*sin_angle_step + v*cos_angle_step;
+    glm::vec3 u = param.cam.look_dir, v = param.cam.up;
+    param.cam.look_dir = u*param.cam.cos_angle + v*param.cam.sin_angle;
+    param.cam.up = -u*param.cam.sin_angle + v*param.cam.cos_angle;
 
     return true;
   }
   if( key == GLFW_KEY_J && action == GLFW_REPEAT ) {
-    if(lock_view) return true;
+    if(param.cam.lock_view) return true;
 
-    vec3 u = look_dir, v = up;
-    look_dir = u*cos_angle_step + -v*sin_angle_step;
-    up = u*sin_angle_step + v*cos_angle_step;
+    glm::vec3 u = param.cam.look_dir, v = param.cam.up;
+    param.cam.look_dir = u*param.cam.cos_angle + -v*param.cam.sin_angle;
+    param.cam.up = u*param.cam.sin_angle + v*param.cam.cos_angle;
 
     return true;
   }
   if( key == GLFW_KEY_K && action == GLFW_REPEAT ) {
-    if(lock_view) return true;
+    if(param.cam.lock_view) return true;
 
-    vec3 u = right, v = look_dir;
-    right = u*cos_angle_step + -v*sin_angle_step;
-    look_dir = u*sin_angle_step + v*cos_angle_step;
+    glm::vec3 u = param.cam.right, v = param.cam.look_dir;
+    param.cam.right = u*param.cam.cos_angle + -v*param.cam.sin_angle;
+    param.cam.look_dir = u*param.cam.sin_angle + v*param.cam.cos_angle;
 
     return true;
   }
   if( key == GLFW_KEY_H && action == GLFW_REPEAT ) {
-    if(lock_view) return true;
+    if(param.cam.lock_view) return true;
 
-    vec3 u = right, v = look_dir;
-    right = u*cos_angle_step + v*sin_angle_step;
-    look_dir = -u*sin_angle_step + v*cos_angle_step;
+    glm::vec3 u = param.cam.right, v = param.cam.look_dir;
+    param.cam.right = u*param.cam.cos_angle + v*param.cam.sin_angle;
+    param.cam.look_dir = -u*param.cam.sin_angle + v*param.cam.cos_angle;
 
     return true;
   }
 
   //------------
   if( key == GLFW_KEY_M && action == GLFW_REPEAT ) {
-    if(lock_view) return true;
+    if(param.cam.lock_view) return true;
 
-    vec3 u = right, v = up;
-    right = u*cos_angle_step + -v*sin_angle_step;
-    up = u*sin_angle_step + v*cos_angle_step;
+    glm::vec3 u = param.cam.right, v = param.cam.up;
+    param.cam.right = u*param.cam.cos_angle + -v*param.cam.sin_angle;
+    param.cam.up = u*param.cam.sin_angle + v*param.cam.cos_angle;
 
     return true;
   }
   if( key == GLFW_KEY_N && action == GLFW_REPEAT ) {
-    if(lock_view) return true;
+    if(param.cam.lock_view) return true;
 
-    vec3 u = right, v = up;
-    right = u*cos_angle_step + v*sin_angle_step;
-    up = -u*sin_angle_step + v*cos_angle_step;
+    glm::vec3 u = param.cam.right, v = param.cam.up;
+    param.cam.right = u*param.cam.cos_angle + v*param.cam.sin_angle;
+    param.cam.up = -u*param.cam.sin_angle + v*param.cam.cos_angle;
 
     return true;
   }
@@ -271,9 +277,9 @@ void Engine::drawContents()
   //----------- RENDERING ----------
   //--------------------------------
   //proj and viewport could be precomputed!
-  mat4 view = mat4::view(eye, eye + look_dir, up);
-
-  mat4 proj = mat4::perspective(45.0f, 45.0f, 0.5f, 500.0f);
+  mat4 view = mat4::view(param.cam.eye, param.cam.eye + param.cam.look_dir, param.cam.up);
+  mat4 proj = mat4::perspective(param.cam.FoVx, param.cam.FoVy,
+                                param.cam.near, param.cam.far);
   mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
 
   fbo.clearDepthBuffer();
@@ -285,7 +291,7 @@ void Engine::drawContents()
   gp.bind_tex_unit(checker, 0);
 
   gp.upload_uniform(model, view, proj, viewport);
-  gp.render(fbo, cull_back);
+  gp.render(fbo, param.front_face == GL_CCW);
 
   GLubyte *color_buffer = fbo.colorBuffer();
 

@@ -2,6 +2,7 @@
 #define MATRIX_H
 
 #include <cmath>
+#include <glm/glm.hpp>
 
 #define PI 3.14159265f
 
@@ -131,6 +132,15 @@ public:
                 vec4(u(1), v(1), w(1), 0.0f),
                 vec4(u(2), v(2), w(2), 0.0f),
                 vec4(-eye.dot(u), -eye.dot(v), -eye.dot(w), 1.0f));
+  }
+
+  // little adaptation
+  static mat4 view(const glm::vec3& eye, const glm::vec3& look_at,
+                    const glm::vec3& up)
+  {
+      return view(vec3(eye.x, eye.y, eye.z),
+                  vec3(look_at.x, look_at.y, look_at.z),
+                  vec3(up.x, up.y, up.z));
   }
 
   static mat4 perspective(float fovy, float fovx, float near, float far)

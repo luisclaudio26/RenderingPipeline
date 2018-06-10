@@ -1,14 +1,17 @@
 #include "../include/ogl.h"
 
-OGL::OGL(GlobalParameters& param,
+OGL::OGL(SceneParameters& param,
           const char* path,
           Widget *parent) : nanogui::GLCanvas(parent), param(param), framerate(0.0f)
 {
   this->model.load_file(path);
 
-  //We'll use the same model matrix for both contexts, as we
-  //are loading the same model on both.
-  //this->model.transform_to_center(mModel);
+  // store model transform
+  mat4 model_tmp;
+  this->model.transform_to_center(model_tmp);
+  for(int i = 0; i < 4; ++i)
+    for(int j = 0; j < 4; ++j)
+      model2world[i][j] = model_tmp(i,j);
 
   this->shader.initFromFiles("phong",
                               "../shaders/phong.vs",
@@ -21,6 +24,7 @@ OGL::OGL(GlobalParameters& param,
   this->shader.uploadAttrib<Eigen::MatrixXf>("diff", model.mDiff);
   this->shader.uploadAttrib<Eigen::MatrixXf>("spec", model.mSpec);
   this->shader.uploadAttrib<Eigen::MatrixXf>("shininess", model.mShininess);
+  this->shader.uploadAttrib<Eigen::MatrixXf>("uv", model.mUV);
 }
 
 void OGL::drawGL()
