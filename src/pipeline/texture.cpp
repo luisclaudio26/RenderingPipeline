@@ -98,6 +98,25 @@ void Texture::compute_mips()
   }
 }
 
+static rgba fillTexel(const unsigned char* texel, int n_channels)
+{
+  rgba out(0.0f, 0.0f, 0.0f, 1.0f);
+
+  if(n_channels == 1)
+  {
+    float v = texel[0]/255.0f;
+    out(0) = out(1) = out(2) = v;
+  }
+  else
+  {
+    for(int i = 0; i < n_channels; ++i)
+      out(i) = texel[i]/255.0f;
+  }
+
+  return out;
+}
+
+
 rgba Texture::texel(int i, int j, int level) const
 {
   int l_ = l; //size of the k-th level
@@ -115,11 +134,11 @@ rgba Texture::texel(int i, int j, int level) const
   for(int k = 0; k < level; ++k, l_ /= 2)
     offset += n*l_*l_;
 
+  // flip vertical axis
+  i = l_ - i;
+
   int add = offset + n*(i*l_+j);
   unsigned char* t = &data[add];
 
-  rgba out(t[0]/255.0f, t[1]/255.0f, t[2]/255.0f, 1.0f);
-  if(n == 4) out(4) = t[3]/255.0f;
-
-  return out;
+  return fillTexel(t, n);
 }

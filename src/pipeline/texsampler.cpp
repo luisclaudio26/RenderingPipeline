@@ -34,62 +34,44 @@ static rgba nn_filter_lookup(float u, float v, const Texture* tex)
 // --------------------------------------
 // -------- From TextureSampler ---------
 // --------------------------------------
-rgba TextureSampler::sample2D(float u, float v, float dudx, float dvdx) const
+rgba TextureSampler::sampleNearestNeighbor(float u, float v) const
 {
-  rgba out(1.0f, 0.0f, 0.0f, 1.0f);
+  return nn_filter_lookup(u*tex_data->l, v*tex_data->l, tex_data);
+}
 
-  // get filtered texel
-  switch(f)
-  {
-    case NearestNeighbor:
-    {
-      out = nn_filter_lookup(u*tex_data->l, v*tex_data->l, tex_data);
-      break;
-    }
+rgba TextureSampler::sampleBilinear(float u, float v) const
+{
+  float i = (tex_data->l-1)*v;
+  float j = (tex_data->l-1)*u;
+  return bilinear_filter_lookup(j, i, tex_data);
+}
 
-    case Bilinear:
-    {
-      float i = (tex_data->l-1)*v;
-      float j = (tex_data->l-1)*u;
-      out = bilinear_filter_lookup(j, i, tex_data);
-      break;
-    }
+rgba TextureSampler::sampleTrilinear(float u, float v, float dudx, float dvdx) const
+{
+  // pixel area deformation
+  // TODO: REALLY bad approximation
+  float scale = std::fmax(dudx * tex_data->l, dvdx * tex_data->l);
 
-    case Trilinear:
-    {
-      // pixel area deformation
-      // TODO: REALLY bad approximation
-      float scale = std::fmax(dudx * tex_data->l, dvdx * tex_data->l);
+  // not a minification operation. use box reconstruction
+  if( scale <= 1.0f )
+    return nn_filter_lookup(u*tex_data->l, v*tex_data->l, tex_data);
 
-      // not a minification operation. use box reconstruction
-      if( scale <= 1.0f )
-      {
-        out = nn_filter_lookup(u*tex_data->l, v*tex_data->l, tex_data);
-        break;
-      }
+  // MIP level estimation and interpolation parameter
+  float k_ = log2(scale);
+  int k = (int)k_;
+  float a = k_ - k;
 
-      // MIP level estimation and interpolation parameter
-      float k_ = log2(scale);
-      int k = (int)k_;
-      float a = k_ - k;
+  int sz1 = tex_data->l/(1 << k);
+  int i1 = v*(sz1-1);
+  int j1 = u*(sz1-1);
+  rgba mip1 = bilinear_filter_lookup(j1, i1, tex_data, k);
 
-      int sz1 = tex_data->l/(1 << k);
-      int i1 = v*(sz1-1);
-      int j1 = u*(sz1-1);
-      rgba mip1 = bilinear_filter_lookup(j1, i1, tex_data, k);
+  // TODO: in the limit case, k+1 is not a valid
+  // mip level. we should take care of this after
+  int sz2 = tex_data->l/(1 << (k+1));
+  int i2 = v*(sz2-1);
+  int j2 = u*(sz2-1);
+  rgba mip2 = bilinear_filter_lookup(j2, i2, tex_data, k+1);
 
-      // TODO: in the limit case, k+1 is not a valid
-      // mip level. we should take care of this after
-      int sz2 = tex_data->l/(1 << (k+1));
-      int i2 = v*(sz2-1);
-      int j2 = u*(sz2-1);
-      rgba mip2 = bilinear_filter_lookup(j2, i2, tex_data, k+1);
-
-      out = mip1 + (mip2-mip1)*a;
-
-      break;
-    }
-  }
-
-  return out;
+  return mip1 + (mip2-mip1)*a;
 }
