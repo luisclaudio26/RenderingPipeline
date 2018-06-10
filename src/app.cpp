@@ -391,7 +391,7 @@ void Engine::drawContents()
   gp.bind_tex_unit(checker, 0);
 
   gp.upload_uniform(model, view, proj, viewport);
-  gp.render(fbo, param.front_face == GL_CCW);
+  gp.render(fbo, param.front_face == GL_CCW, param.draw_mode != GL_LINE);
 
   GLubyte *color_buffer = fbo.colorBuffer();
 

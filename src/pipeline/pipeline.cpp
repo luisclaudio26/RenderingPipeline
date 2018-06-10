@@ -90,7 +90,7 @@ void GraphicPipeline::upload_uniform(const mat4& model,
   vshader.viewport = &this->viewport;
 }
 
-void GraphicPipeline::render(Framebuffer& render_target, bool cull_back)
+void GraphicPipeline::render(Framebuffer& render_target, bool cull_back, bool fill)
 {
   // reset vbuffer state variables, so loops controlled
   // by vbuffer_sz will be correct!
@@ -103,7 +103,7 @@ void GraphicPipeline::render(Framebuffer& render_target, bool cull_back)
   vbuffer_sz = primitive_clipping();
   perspective_division();
   vbuffer_sz = primitive_culling(cull_back);
-  rasterization(render_target);
+  rasterization(render_target, fill);
 }
 
 // ---------------------------------------
@@ -281,7 +281,7 @@ int GraphicPipeline::primitive_culling(bool cull_back)
   return non_culled;
 }
 
-void GraphicPipeline::rasterization(Framebuffer& render_target)
+void GraphicPipeline::rasterization(Framebuffer& render_target, bool fill)
 {
   // akin to an assembly move. This will (should) be used for
   // buffers of the same size only, so we don't need the size
@@ -449,8 +449,8 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
       {
         //in order to draw only the edges, we skip this
         //the scanline rasterization in all points but
-        //the extremities. TODO
-        //if(param.draw_mode == GL_LINE && (x != s && x != e)) continue;
+        //the extremities.
+        if(!fill && (x != s && x != e)) continue;
 
         // To better represent what the pipeline does, we should, in the
         // following order:
