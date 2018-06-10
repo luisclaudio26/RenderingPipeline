@@ -148,8 +148,9 @@ public:
       //compute bounds of the projection plane
       float fovy_ = fovy * 0.5f, fovx_ = fovx * 0.5f;
 
-      float t = tan(fovy_ * PI / 180.0f) * near; float b = -t;
-      float r = tan(fovx_ * PI / 180.0f) * near; float l = -r;
+      float t = tan(fovy_ * PI / 180.0f); //* near;
+      float r = tan(fovx_ * PI / 180.0f); //* near;
+      float l = -r, b = -t;
 
       //shearing matrix. TODO: we don't really need this in this version,
       //only for skewed frustums
