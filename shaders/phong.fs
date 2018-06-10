@@ -15,6 +15,7 @@ uniform vec3 model_color;
 
 // illumination models
 uniform int shadeId;
+uniform sampler2D tex;
 
 vec3 gouraudAD()
 {
@@ -47,6 +48,12 @@ vec3 no_shade()
   return model_color;
 }
 
+vec3 textured()
+{
+  return texture(tex, lerp_uv).xyz;
+}
+
+
 void main()
 {
   vec3 color;
@@ -56,8 +63,8 @@ void main()
     case 1: color = gouraudADS(); break;
     case 2: color = phong(); break;
     case 3: color = no_shade(); break;
+    case 4: color = textured(); break;
   }
 
-  //color_out = vec4(color, 1.0f);
-  color_out = vec4(lerp_uv.x, lerp_uv.y, 0.0f, 1.0f);
+  color_out = vec4(color, 1.0f);
 }

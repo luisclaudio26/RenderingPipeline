@@ -33,7 +33,7 @@ Engine::Engine(const char* path)
   param.front_face = GL_CCW;
   param.draw_mode = GL_FILL;
   param.model_color<<0.0f, 0.0f, 1.0f;
-  param.light<<0.0f, 2.5f, 0.0f;
+  param.light<<0.0f, 0.0f, 0.0f;
   param.shading = 0;
 
   // Load model and unpack.
@@ -70,6 +70,23 @@ Engine::Engine(const char* path)
   // load textures
   checker.load_from_file("../data/mandrill_256.jpg");
   checker.compute_mips();
+
+  GLuint ogl_tex_id;
+  glGenTextures(1, &ogl_tex_id);
+  glBindTexture(GL_TEXTURE_2D, ogl_tex_id);
+
+  int k = (int)log2(checker.l);
+  GLenum internal_format;
+  switch(checker.n)
+  {
+    case 1: internal_format = GL_R8; break;
+    case 2: internal_format = GL_RG8; break;
+    case 3: internal_format = GL_RGB8; break; //will cause alignment problems
+    case 4: internal_format = GL_RGBA8; break;
+  }
+  glTexStorage2D(GL_TEXTURE_2D, k, internal_format, checker.l, checker.l);
+
+  fbo.resizeBuffer(DEFAULT_WIDTH, DEFAULT_HEIGHT);
 
   // ---------------------------------------------
   // ---------- Upload data to pipeline ----------
@@ -226,7 +243,7 @@ Engine::Engine(const char* path)
                             case 2: param.draw_mode = GL_FILL; break;
                           } });
 
-  ComboBox *shading_model = new ComboBox(window, {"GouraudAD", "GouraudADS", "PhongADS", "No shading"});
+  ComboBox *shading_model = new ComboBox(window, {"GouraudAD", "GouraudADS", "PhongADS", "No shading", "Textured"});
   shading_model->setCallback([&](int opt) {
                               switch(opt)
                               {
@@ -234,6 +251,7 @@ Engine::Engine(const char* path)
                                 case 1: param.shading = 1; break;
                                 case 2: param.shading = 2; break;
                                 case 3: param.shading = 3; break;
+                                case 4: param.shading = 4; break;
                               } });
 
 
