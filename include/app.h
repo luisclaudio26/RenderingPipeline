@@ -37,6 +37,9 @@ private:
   nanogui::GLShader shader;
   GLuint color_gpu;
 
+  //comparison window
+  OGL *ogl;
+
 public:
   Engine(const char* path);
   bool keyboardEvent(int key, int scancode, int action, int modifiers) override;

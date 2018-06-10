@@ -51,7 +51,7 @@ Engine::Engine(const char* path)
   mesh.transform_to_center(model);
 
   // load textures
-  checker.load_from_file("../data/image1.jpg");
+  checker.load_from_file("../data/mandrill_256.jpg");
   checker.compute_mips();
 
   // ---------------------------------------------
@@ -138,6 +138,11 @@ Engine::Engine(const char* path)
   shader.bind();
   shader.uploadAttrib<Eigen::MatrixXf>("quad_pos", quad);
   shader.uploadAttrib<Eigen::MatrixXf>("quad_uv", texcoord);
+
+  // ------------------------------------
+  // -------- OpenGL comparison ---------
+  // ------------------------------------
+  
 }
 
 bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
