@@ -11,7 +11,7 @@ OGL::OGL(SceneParameters& param,
   this->model.transform_to_center(model_tmp);
   for(int i = 0; i < 4; ++i)
     for(int j = 0; j < 4; ++j)
-      model2world[i][j] = model_tmp(i,j);
+      model2world[i][j] = model_tmp(j,i);
 
   this->shader.initFromFiles("phong",
                               "../shaders/phong.vs",
@@ -41,7 +41,7 @@ void OGL::drawGL()
   float r = tan( glm::radians(param.cam.FoVx/2) ), l = -r;
   glm::mat4 proj = glm::frustum(l, r, b, t, param.cam.near, param.cam.far);
 
-  Eigen::Matrix4f m = Eigen::Map<Eigen::Matrix4f>(glm::value_ptr(param.model2world));
+  Eigen::Matrix4f m = Eigen::Map<Eigen::Matrix4f>(glm::value_ptr(this->model2world));
   Eigen::Vector3f eye = Eigen::Map<Eigen::Vector3f>(glm::value_ptr(param.cam.eye));
 
   Eigen::Matrix4f v = Eigen::Map<Eigen::Matrix4f>(glm::value_ptr(view));

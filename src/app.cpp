@@ -1,5 +1,11 @@
 #include "../include/app.h"
 
+//#include <nanogui/opengl.h>
+//#include <nanogui/glutil.h>
+#include <nanogui/screen.h>
+#include <nanogui/window.h>
+#include <nanogui/layout.h>
+
 Engine::Engine(const char* path)
   : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test")
 {
@@ -148,7 +154,15 @@ Engine::Engine(const char* path)
   // ------------------------------------
   // -------- OpenGL comparison ---------
   // ------------------------------------
+  nanogui::Window *winOpenGL = new nanogui::Window(this, "OpenGL");
+  winOpenGL->setSize({480, 270});
+  winOpenGL->setPosition(Eigen::Vector2i(50,50));
+  winOpenGL->setLayout(new nanogui::GroupLayout());
 
+  ogl = new OGL(param, path, winOpenGL);
+  ogl->setSize({480, 270});
+
+  performLayout();
 }
 
 bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
