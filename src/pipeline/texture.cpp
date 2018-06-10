@@ -15,7 +15,10 @@ static void average_4(const unsigned char* P1, const unsigned char* P2,
   {
     // compute the average and round to nearest integer
     int acc = (int)P1[i] + (int)P2[i] + (int)P3[i] + (int)P4[i];
-    target[i] = (unsigned char)(acc*0.25+0.5f);
+
+    //printf("(%d,%d,%d,%d) -> %d ||", P1[i], P2[i], P3[i], P4[i], acc/4);
+
+    target[i] = (unsigned char)(acc/4);
   }
 }
 

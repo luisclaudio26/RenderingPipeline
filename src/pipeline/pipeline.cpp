@@ -316,7 +316,7 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
   float *dV_dx = new float[vbuffer_elem_sz];  //horizontal increment
   float *f = new float[vbuffer_elem_sz];      //bilinearly interpolated fragment
   float *frag = new float[vbuffer_elem_sz];   //persective interpolated fragment
-  float *jac_x = new float[vbuffer_elem_sz];  //persective interpolated derivatives
+  float *dVdx_w = new float[vbuffer_elem_sz]; //persective interpolated derivatives
 
   for(int t = 0; t < vbuffer_sz; t += tri_sz)
   {
@@ -484,10 +484,10 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
           // perspectively-correct interpolation of attributes
           // and derivatives
           scalar_vertex(f, 1.0f/W(f), frag, vbuffer_elem_sz);
-          scalar_vertex(dV_dx, 1.0f/W(f), jac_x, vbuffer_elem_sz);
+          scalar_vertex(dV_dx, 1.0f/W(f), dVdx_w, vbuffer_elem_sz);
 
           // invoke fragment shader for the interpolated fragment
-          rgba frag_color = fshader.launch(frag, jac_x, vbuffer_elem_sz);
+          rgba frag_color = fshader.launch(frag, dVdx_w, vbuffer_elem_sz);
 
           // write to framebuffer
           RGBA8 color_ubyte;
@@ -527,5 +527,5 @@ void GraphicPipeline::rasterization(Framebuffer& render_target)
   delete[] f;
   delete[] frag;
   delete[] dV_dx;
-  delete[] jac_x;
+  delete[] dVdx_w;
 }
