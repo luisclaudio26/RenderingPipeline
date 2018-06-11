@@ -71,21 +71,6 @@ Engine::Engine(const char* path)
   checker.load_from_file("../data/mandrill_256.jpg");
   checker.compute_mips();
 
-  GLuint ogl_tex_id;
-  glGenTextures(1, &ogl_tex_id);
-  glBindTexture(GL_TEXTURE_2D, ogl_tex_id);
-
-  int k = (int)log2(checker.l);
-  GLenum internal_format;
-  switch(checker.n)
-  {
-    case 1: internal_format = GL_R8; break;
-    case 2: internal_format = GL_RG8; break;
-    case 3: internal_format = GL_RGB8; break; //will cause alignment problems
-    case 4: internal_format = GL_RGBA8; break;
-  }
-  glTexStorage2D(GL_TEXTURE_2D, k, internal_format, checker.l, checker.l);
-
   fbo.resizeBuffer(DEFAULT_WIDTH, DEFAULT_HEIGHT);
 
   // ---------------------------------------------

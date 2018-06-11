@@ -53,7 +53,6 @@ vec3 textured()
   return texture(tex, lerp_uv).xyz;
 }
 
-
 void main()
 {
   vec3 color;

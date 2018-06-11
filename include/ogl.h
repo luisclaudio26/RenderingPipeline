@@ -17,6 +17,7 @@ private:
 
   Mesh model;
   glm::mat4 model2world;
+  GLuint tex_ID;
 
   //rigorously this should be a const
   //reference, but had problems with

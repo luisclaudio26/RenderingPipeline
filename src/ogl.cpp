@@ -1,4 +1,6 @@
 #include "../include/ogl.h"
+#include "../3rdparty/stb_image.h"
+#include <cstdio>
 
 OGL::OGL(SceneParameters& param,
           const char* path,
@@ -13,6 +15,7 @@ OGL::OGL(SceneParameters& param,
     for(int j = 0; j < 4; ++j)
       model2world[i][j] = model_tmp(j,i);
 
+  // load shaders and upload attributes
   this->shader.initFromFiles("phong",
                               "../shaders/phong.vs",
                               "../shaders/phong.fs");
@@ -25,6 +28,15 @@ OGL::OGL(SceneParameters& param,
   this->shader.uploadAttrib<Eigen::MatrixXf>("spec", model.mSpec);
   this->shader.uploadAttrib<Eigen::MatrixXf>("shininess", model.mShininess);
   this->shader.uploadAttrib<Eigen::MatrixXf>("uv", model.mUV);
+
+  // load texture
+  int w, h, n;
+  unsigned char* img = stbi_load("../data/mandrill_256.jpg", &w, &h, &n, 4);
+  
+  glGenTextures(1, &tex_ID);
+  glBindTexture(GL_TEXTURE_2D, tex_ID);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+                w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (const GLvoid*)img);
 }
 
 void OGL::drawGL()
@@ -47,8 +59,15 @@ void OGL::drawGL()
   Eigen::Matrix4f v = Eigen::Map<Eigen::Matrix4f>(glm::value_ptr(view));
   Eigen::Matrix4f p = Eigen::Map<Eigen::Matrix4f>(glm::value_ptr(proj));
 
+  // bind test texture on unit 0
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, tex_ID);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
   //actual drawing
   this->shader.bind();
+  this->shader.setUniform("tex", 0);
   this->shader.setUniform("model", m);
   this->shader.setUniform("view", v);
   this->shader.setUniform("proj", p);
