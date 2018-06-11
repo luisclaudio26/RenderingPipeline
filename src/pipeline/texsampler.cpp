@@ -62,15 +62,15 @@ rgba TextureSampler::sampleTrilinear(float u, float v, float dudx, float dvdx) c
   float a = k_ - k;
 
   int sz1 = tex_data->l/(1 << k);
-  int i1 = v*(sz1-1);
-  int j1 = u*(sz1-1);
+  float i1 = v*(sz1-1);
+  float j1 = u*(sz1-1);
   rgba mip1 = bilinear_filter_lookup(j1, i1, tex_data, k);
 
   // TODO: in the limit case, k+1 is not a valid
   // mip level. we should take care of this after
   int sz2 = tex_data->l/(1 << (k+1));
-  int i2 = v*(sz2-1);
-  int j2 = u*(sz2-1);
+  float i2 = v*(sz2-1);
+  float j2 = u*(sz2-1);
   rgba mip2 = bilinear_filter_lookup(j2, i2, tex_data, k+1);
 
   return mip1 + (mip2-mip1)*a;

@@ -17,6 +17,5 @@ rgba FragmentShader::launch(const float* vertex_in, const float* dVdx, int n)
   // [ ] receive a texture unit ID as uniform
   // [X] retrieve texture sampler using this ID and the texture manager
   // [X] sample using texcoord
-  //return (*tex_units)[0].sampleTrilinear(texcoord[0], texcoord[1], dVdx[10], dVdx[11]);
-  return (*tex_units)[0].sampleNearestNeighbor(texcoord[0], texcoord[1]);
+  return (*tex_units)[0].sampleTrilinear(texcoord[0], texcoord[1], dVdx[10], dVdx[11]);
 }
