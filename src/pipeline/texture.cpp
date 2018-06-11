@@ -14,11 +14,9 @@ static void average_4(const unsigned char* P1, const unsigned char* P2,
   for(int i = 0; i < n_channels; ++i)
   {
     // compute the average and round to nearest integer
-    int acc = (int)P1[i] + (int)P2[i] + (int)P3[i] + (int)P4[i];
-
+    float acc = (float)P1[i] + (float)P2[i] + (float)P3[i] + (float)P4[i];
     //printf("(%d,%d,%d,%d) -> %d ||", P1[i], P2[i], P3[i], P4[i], acc/4);
-
-    target[i] = (unsigned char)(acc/4);
+    target[i] = (unsigned char)(acc/4 + 0.5f);
   }
 }
 
@@ -133,10 +131,7 @@ rgba Texture::texel(int i, int j, int level) const
   int offset = 0;
   for(int k = 0; k < level; ++k, l_ /= 2)
     offset += n*l_*l_;
-
-  // flip vertical axis
-  i = l_ - i;
-
+    
   int add = offset + n*(i*l_+j);
   unsigned char* t = &data[add];
 
