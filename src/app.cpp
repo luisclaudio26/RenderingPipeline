@@ -21,6 +21,8 @@ void Engine::drawContents()
   //--------------------------------
   //----------- RENDERING ----------
   //--------------------------------
+  clock_t start = clock();
+
   //proj and viewport could be precomputed!
   mat4 view = mat4::view(param.cam.eye, param.cam.eye + param.cam.look_dir, param.cam.up);
   mat4 proj = mat4::perspective(param.cam.FoVy, param.cam.FoVx,
@@ -69,6 +71,13 @@ void Engine::drawContents()
   //draw stuff
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   shader.drawArray(GL_TRIANGLES, 0, 6);
+
+  //framerate
+  start = clock() - start;
+  framerate_almost->setCaption("AlmostGL: " + std::to_string(CLOCKS_PER_SEC/(float)start) );
+  framerate_open->setCaption("OpenGL: " + std::to_string(ogl->framerate) );
+  window_dimension->setCaption(std::to_string(this->width())
+                                + "x" + std::to_string(this->height()));
 }
 
 bool Engine::resizeEvent(const Eigen::Vector2i &size)
@@ -316,6 +325,10 @@ Engine::Engine(const char* path)
                                 case 4: param.shading = 4; break;
                               } });
 
+  //display framerates
+  window_dimension = new Label(window, "dim");
+  framerate_open = new Label(window, "framerate");
+  framerate_almost = new Label(window, "framerate");
 
   // ------------------------------------
   // -------- OpenGL comparison ---------

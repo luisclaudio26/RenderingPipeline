@@ -26,6 +26,10 @@ private:
   GLuint color_gpu;
   int buffer_width, buffer_height;
 
+  nanogui::Label *framerate_open;
+  nanogui::Label *framerate_almost;
+  nanogui::Label *window_dimension;
+
   //comparison window
   SceneParameters param;
   OGL *ogl;
