@@ -24,6 +24,7 @@ private:
   //display stuff
   nanogui::GLShader shader;
   GLuint color_gpu;
+  int buffer_width, buffer_height;
 
   //comparison window
   SceneParameters param;
@@ -34,6 +35,7 @@ public:
   bool keyboardEvent(int key, int scancode, int action, int modifiers) override;
   void draw(NVGcontext *ctx) override;
   void drawContents() override;
+  bool resizeEvent(const Eigen::Vector2i &size) override;
 };
 
 #endif

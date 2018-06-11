@@ -11,8 +11,87 @@
 #include <nanogui/colorpicker.h>
 #include <nanogui/combobox.h>
 
+void Engine::draw(NVGcontext *ctx)
+{
+  Screen::draw(ctx);
+}
+
+void Engine::drawContents()
+{
+  //--------------------------------
+  //----------- RENDERING ----------
+  //--------------------------------
+  //proj and viewport could be precomputed!
+  mat4 view = mat4::view(param.cam.eye, param.cam.eye + param.cam.look_dir, param.cam.up);
+  mat4 proj = mat4::perspective(param.cam.FoVy, param.cam.FoVx,
+                                param.cam.near, param.cam.far);
+  mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
+
+  fbo.clearDepthBuffer();
+  fbo.clearColorBuffer();
+
+  // TEXTURE SAMPLING
+  // [X] Bind a loaded texture to a given texture unit
+  // [ ] Bind texture unit id to uniform
+  gp.bind_tex_unit(checker, 0);
+
+  gp.upload_uniform(model, view, proj, viewport);
+  gp.render(fbo, param.front_face == GL_CCW, param.draw_mode != GL_LINE);
+
+  GLubyte *color_buffer = fbo.colorBuffer();
+
+  //-------------------------------------------------------
+  //---------------------- DISPLAY ------------------------
+  //-------------------------------------------------------
+  // send to GPU in texture unit 0
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, color_gpu);
+
+  //WARNING: be careful with RGB pixel data
+  //as OpenGL expects 4-byte aligned data
+  //https://www.khronos.org/opengl/wiki/Common_Mistakes#Texture_upload_and_pixel_reads
+  glPixelStorei(GL_UNPACK_LSB_FIRST, 0);
+  glTexSubImage2D(GL_TEXTURE_2D,
+                  0, 0, 0,
+                  buffer_width,
+                  buffer_height,
+                  GL_RGBA,
+                  GL_UNSIGNED_BYTE,
+                  color_buffer);
+
+  //WARNING: IF WE DON'T SET THIS IT WON'T WORK!
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+  shader.bind();
+  shader.setUniform("frame", 0);
+
+  //draw stuff
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  shader.drawArray(GL_TRIANGLES, 0, 6);
+}
+
+bool Engine::resizeEvent(const Eigen::Vector2i &size)
+{
+  buffer_height = this->height(), buffer_width = this->width();
+
+  //delete previous texture and allocate a new one with the new size
+  glDeleteTextures(1, &color_gpu);
+  glGenTextures(1, &color_gpu);
+  glBindTexture(GL_TEXTURE_2D, color_gpu);
+  glTexStorage2D(GL_TEXTURE_2D,
+                  1,
+                  GL_RGBA8,
+                  buffer_width,
+                  buffer_height);
+
+  //resize buffers
+  fbo.resizeBuffer(buffer_width, buffer_height);
+}
+
 Engine::Engine(const char* path)
-  : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test")
+  : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test"),
+    buffer_width(DEFAULT_WIDTH), buffer_height(DEFAULT_HEIGHT)
 {
   // --------------------------------
   // --------- Scene setup ----------
@@ -71,8 +150,6 @@ Engine::Engine(const char* path)
   checker.load_from_file("../data/mandrill_256.jpg");
   checker.compute_mips();
 
-  fbo.resizeBuffer(DEFAULT_WIDTH, DEFAULT_HEIGHT);
-
   // ---------------------------------------------
   // ---------- Upload data to pipeline ----------
   // ---------------------------------------------
@@ -92,10 +169,10 @@ Engine::Engine(const char* path)
   glTexStorage2D(GL_TEXTURE_2D,
                   1,
                   GL_RGBA8,
-                  DEFAULT_WIDTH,
-                  DEFAULT_HEIGHT);
+                  buffer_width,
+                  buffer_height);
 
-  fbo.resizeBuffer(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+  fbo.resizeBuffer(buffer_width, buffer_height);
 
   //--------------------------------------
   //----------- Shader options -----------
@@ -367,64 +444,4 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   //---------------
 
   return false;
-}
-
-void Engine::draw(NVGcontext *ctx)
-{
-  Screen::draw(ctx);
-}
-
-void Engine::drawContents()
-{
-  //--------------------------------
-  //----------- RENDERING ----------
-  //--------------------------------
-  //proj and viewport could be precomputed!
-  mat4 view = mat4::view(param.cam.eye, param.cam.eye + param.cam.look_dir, param.cam.up);
-  mat4 proj = mat4::perspective(param.cam.FoVy, param.cam.FoVx,
-                                param.cam.near, param.cam.far);
-  mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
-
-  fbo.clearDepthBuffer();
-  fbo.clearColorBuffer();
-
-  // TEXTURE SAMPLING
-  // [X] Bind a loaded texture to a given texture unit
-  // [ ] Bind texture unit id to uniform
-  gp.bind_tex_unit(checker, 0);
-
-  gp.upload_uniform(model, view, proj, viewport);
-  gp.render(fbo, param.front_face == GL_CCW, param.draw_mode != GL_LINE);
-
-  GLubyte *color_buffer = fbo.colorBuffer();
-
-  //-------------------------------------------------------
-  //---------------------- DISPLAY ------------------------
-  //-------------------------------------------------------
-  // send to GPU in texture unit 0
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, color_gpu);
-
-  //WARNING: be careful with RGB pixel data
-  //as OpenGL expects 4-byte aligned data
-  //https://www.khronos.org/opengl/wiki/Common_Mistakes#Texture_upload_and_pixel_reads
-  glPixelStorei(GL_UNPACK_LSB_FIRST, 0);
-  glTexSubImage2D(GL_TEXTURE_2D,
-                  0, 0, 0,
-                  DEFAULT_WIDTH,
-                  DEFAULT_HEIGHT,
-                  GL_RGBA,
-                  GL_UNSIGNED_BYTE,
-                  color_buffer);
-
-  //WARNING: IF WE DON'T SET THIS IT WON'T WORK!
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-  shader.bind();
-  shader.setUniform("frame", 0);
-
-  //draw stuff
-  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  shader.drawArray(GL_TRIANGLES, 0, 6);
 }

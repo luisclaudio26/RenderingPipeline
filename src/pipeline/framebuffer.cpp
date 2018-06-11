@@ -22,6 +22,10 @@ Framebuffer::~Framebuffer()
 
 void Framebuffer::resizeBuffer(int w, int h)
 {
+  //TODO: this is EXTREMELY slow! the best workaround would be
+  //to use std::vector which is able to do some smart resizing,
+  //so it doesn't need to copy data around in the case where
+  //we can just extend or shrink memory
   this->w = w; this->h = h;
   delete[] color; color = new RGBA8[w*h];
   delete[] depth; depth = new float[w*h];
