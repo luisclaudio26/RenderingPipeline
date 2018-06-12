@@ -77,17 +77,21 @@ void GraphicPipeline::define_attribute(const std::string& name, int n_floats, in
 void GraphicPipeline::upload_uniform(const mat4& model,
                                       const mat4& view,
                                       const mat4& projection,
-                                      const mat4& viewport)
+                                      const mat4& viewport,
+                                      const vec3& eye)
 {
   this->model = model;
   this->view = view;
   this->projection = projection;
   this->viewport = viewport;
+  this->eye = eye;
 
   vshader.model = &this->model;
   vshader.view = &this->view;
   vshader.projection = &this->projection;
   vshader.viewport = &this->viewport;
+
+  fshader.eye = &this->eye;
 }
 
 void GraphicPipeline::render(Framebuffer& render_target, bool cull_back, bool fill)

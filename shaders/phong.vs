@@ -43,6 +43,6 @@ void main()
   lerp_spec = vec3(1.0f) * spec_k;
   lerp_shininess = shininess;
   lerp_pos = pos_worldspace;
-  lerp_normal = -normal;
+  lerp_normal = (inverse(transpose(model))*vec4(normal.x,normal.y,normal.z,1.0f)).xyz;
   lerp_uv = uv;
 }

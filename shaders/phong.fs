@@ -50,7 +50,19 @@ vec3 no_shade()
 
 vec3 textured()
 {
-  return texture(tex, lerp_uv).xyz;
+  //renormalize normal. When the rasterizer
+  //interpolates the attributes, the linear interpolation
+  //of the normals will make their norm less than 1.
+  vec3 normal = normalize(lerp_normal);
+  vec3 v2l = normalize(light - lerp_pos);
+  vec3 v2e = normalize(eye - lerp_pos);
+  vec3 h = normalize(v2l+v2e);
+
+  float diff_k = max(0.0f, dot(normal, v2l));
+  float spec_k = max(0.0f, pow(dot(normal, h), lerp_shininess));
+
+  vec3 tex_sample = texture(tex, lerp_uv).xyz;
+  return tex_sample*(0.1 + diff_k) + vec3(1.0f)*spec_k;
 }
 
 void main()

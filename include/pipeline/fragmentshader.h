@@ -14,6 +14,8 @@ private:
 public:
   rgba launch(const float* vertex_in, const float* dVdx, int n);
 
+  vec3 *eye;
+
   std::vector<TextureSampler> *tex_units;
   std::map<std::string, Attribute> *attribs;
 };

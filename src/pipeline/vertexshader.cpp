@@ -11,12 +11,13 @@ void VertexShader::launch(const float* vertex_in, float* vertex_out,
   const float *pos_ = &vertex_in[pos_id.stride];
 
   vec4 pos(pos_[0], pos_[1], pos_[2], 1.0f);
-  pos = (*projection) * (*view) * (*model) * pos;
+  pos = (*model) * pos;
 
-  vertex_out[0] = 15.0f;
-  vertex_out[1] = 20.0f;
-  vertex_out[2] = 25.0f;
+  vertex_out[0] = pos(0);
+  vertex_out[1] = pos(1);
+  vertex_out[2] = pos(2);
 
+  pos = (*projection) * (*view) * pos;
   for(int i = 0; i < 4; ++i) position(i) = pos(i);
 
   // forward normals

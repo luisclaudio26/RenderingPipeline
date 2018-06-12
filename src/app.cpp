@@ -28,6 +28,9 @@ void Engine::drawContents()
   mat4 proj = mat4::perspective(param.cam.FoVy, param.cam.FoVx,
                                 param.cam.near, param.cam.far);
   mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
+  vec3 eye(param.cam.eye.x,
+            param.cam.eye.y,
+            param.cam.eye.z);
 
   fbo.clearDepthBuffer();
   fbo.clearColorBuffer();
@@ -37,7 +40,7 @@ void Engine::drawContents()
   // [ ] Bind texture unit id to uniform
   gp.bind_tex_unit(checker, 0);
 
-  gp.upload_uniform(model, view, proj, viewport);
+  gp.upload_uniform(model, view, proj, viewport, eye);
   gp.render(fbo, param.front_face == GL_CCW, param.draw_mode != GL_LINE);
 
   GLubyte *color_buffer = fbo.colorBuffer();

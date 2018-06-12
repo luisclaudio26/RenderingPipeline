@@ -62,6 +62,7 @@ private:
 
   // Uniform matrices
   mat4 model, view, projection, viewport;
+  vec3 eye, light;
 
   // shaders <3
   VertexShader vshader;
@@ -89,7 +90,8 @@ public:
   // but for simplicity we're gonna store only the main
   // uniform matrices.
   void upload_uniform(const mat4& model, const mat4& view,
-                      const mat4& projection, const mat4& viewport);
+                      const mat4& projection, const mat4& viewport,
+                      const vec3& eye);
 
   // upload a set of floats containing all the attributes
   // contiguously defined. This can be slow because we make

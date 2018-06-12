@@ -33,7 +33,7 @@ float vec3::dot(const vec3& rhs) const
 
 vec3 vec3::unit() const
 {
-  float norm = (*this).dot(*this);
+  float norm = sqrtf( (*this).dot(*this) );
   return vec3(e[0]/norm, e[1]/norm, e[2]/norm);
 }
 
