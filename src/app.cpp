@@ -32,6 +32,11 @@ void Engine::drawContents()
             param.cam.eye.y,
             param.cam.eye.z);
 
+  rgba model_color(param.model_color[0],
+                    param.model_color[1],
+                    param.model_color[2],
+                    1.0f);
+
   fbo.clearDepthBuffer();
   fbo.clearColorBuffer();
 
@@ -40,7 +45,8 @@ void Engine::drawContents()
   // [ ] Bind texture unit id to uniform
   gp.bind_tex_unit(checker, 0);
 
-  gp.upload_uniform(model, view, proj, viewport, eye);
+  gp.upload_uniform(model, view, proj, viewport, eye,
+                    model_color, param.shading == 4);
   gp.render(fbo, param.front_face == GL_CCW, param.draw_mode != GL_LINE);
 
   GLubyte *color_buffer = fbo.colorBuffer();
@@ -124,7 +130,7 @@ Engine::Engine(const char* path)
   param.front_face = GL_CCW;
   param.draw_mode = GL_FILL;
   param.model_color<<0.0f, 0.0f, 1.0f;
-  param.light<<0.0f, 0.0f, 0.0f;
+  param.light<<2.0f, 1.0f, -1.0f;
   param.shading = 0;
 
   // Load model and unpack.

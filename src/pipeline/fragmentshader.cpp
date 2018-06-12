@@ -1,7 +1,7 @@
 #include "../../include/pipeline/fragmentshader.h"
 #include <cmath>
 
-const vec3 LIGHT_POS(0.0f, 0.0f, 0.0f);
+const vec3 LIGHT_POS(2.0f, 1.0f, -1.0f);
 
 rgba FragmentShader::launch(const float* vertex_in, const float* dVdx, int n)
 {
@@ -25,7 +25,13 @@ rgba FragmentShader::launch(const float* vertex_in, const float* dVdx, int n)
   // [X] retrieve texture sampler using this ID and the texture manager
   // [X] sample using texcoord
   //rgba tex_sample = (*tex_units)[0].sampleTrilinear(texcoord[0], texcoord[1], dVdx[10], dVdx[11]);
-  rgba tex_sample = (*tex_units)[0].sampleNearestNeighbor(texcoord[0], texcoord[1]);
+  //rgba tex_sample = (*tex_units)[0].sampleBilinear(texcoord[0], texcoord[1]);
+
+  rgba color;
+  if(textures)
+    color = (*tex_units)[0].sampleNearestNeighbor(texcoord[0], texcoord[1]);
+  else
+    color = model_color;
 
   // phong shading
   vec3 v2l = (LIGHT_POS - p).unit();
@@ -35,10 +41,8 @@ rgba FragmentShader::launch(const float* vertex_in, const float* dVdx, int n)
   float diff_k = std::fmax(0.0f, normal.dot(v2l));
   float spec_k = std::fmax(0.0f, pow(normal.dot(h), 10.0f));
 
-  rgba out = tex_sample*(0.1f + diff_k) + rgba(1.0f,1.0f,1.0f,0.0f)*spec_k;
-  //rgba out(diff_k, diff_k, diff_k, diff_k);
-  //rgba out(p(0)*0.1f, p(1)*0.1f, p(2)*0.1f, 1.0f);
-
+  rgba out = color*(0.1f + diff_k) + rgba(1.0f,1.0f,1.0f,0.0f)*spec_k;
   out(3) = 1.0f;
+
   return out;
 }

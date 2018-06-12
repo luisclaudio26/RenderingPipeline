@@ -14,7 +14,10 @@ private:
 public:
   rgba launch(const float* vertex_in, const float* dVdx, int n);
 
-  vec3 *eye;
+  //TODO: This should disappear once the uniform variables
+  //management is properly implemented.
+  vec3 *eye; rgba model_color;
+  bool textures;
 
   std::vector<TextureSampler> *tex_units;
   std::map<std::string, Attribute> *attribs;

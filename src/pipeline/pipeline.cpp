@@ -78,7 +78,9 @@ void GraphicPipeline::upload_uniform(const mat4& model,
                                       const mat4& view,
                                       const mat4& projection,
                                       const mat4& viewport,
-                                      const vec3& eye)
+                                      const vec3& eye,
+                                      const rgba& model_color,
+                                      bool textures)
 {
   this->model = model;
   this->view = view;
@@ -92,6 +94,8 @@ void GraphicPipeline::upload_uniform(const mat4& model,
   vshader.viewport = &this->viewport;
 
   fshader.eye = &this->eye;
+  fshader.model_color = model_color;
+  fshader.textures = textures;
 }
 
 void GraphicPipeline::render(Framebuffer& render_target, bool cull_back, bool fill)

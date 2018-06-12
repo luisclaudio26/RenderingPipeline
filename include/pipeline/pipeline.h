@@ -89,9 +89,17 @@ public:
   // this should be as flexible as the attribute system,
   // but for simplicity we're gonna store only the main
   // uniform matrices.
-  void upload_uniform(const mat4& model, const mat4& view,
-                      const mat4& projection, const mat4& viewport,
-                      const vec3& eye);
+  // TODO: This will disappear once we have the uniform
+  // variable management system working and will be replaced
+  // by something that receives a variable and a string ID,
+  // just like the attributes
+  void upload_uniform(const mat4& model,
+                      const mat4& view,
+                      const mat4& projection,
+                      const mat4& viewport,
+                      const vec3& eye,
+                      const rgba& model_color,
+                      bool textures);
 
   // upload a set of floats containing all the attributes
   // contiguously defined. This can be slow because we make
