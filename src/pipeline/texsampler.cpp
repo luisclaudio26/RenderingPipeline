@@ -73,5 +73,9 @@ rgba TextureSampler::sampleTrilinear(float u, float v, float dudx, float dvdx) c
   float j2 = u*(sz2-1);
   rgba mip2 = bilinear_filter_lookup(j2, i2, tex_data, k+1);
 
+  //printf("%d %f %d | ", k, a, k+1);
+
+  //return mip1*(1.0f-a) + mip2*a;
+
   return mip1 + (mip2-mip1)*a;
 }

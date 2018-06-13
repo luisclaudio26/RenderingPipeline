@@ -165,7 +165,7 @@ Engine::Engine(const char* path)
   mesh.transform_to_center(model);
 
   // load textures
-  checker.load_from_file("../data/mandrill_256.jpg");
+  checker.load_from_file("../data/image1.jpg");
   checker.compute_mips();
 
   // ---------------------------------------------

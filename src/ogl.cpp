@@ -31,15 +31,16 @@ OGL::OGL(SceneParameters& param,
 
   // load texture
   int w, h, n;
-  unsigned char* img = stbi_load("../data/mandrill_256.jpg", &w, &h, &n, 4);
+  unsigned char* img = stbi_load("../data/image1.jpg", &w, &h, &n, 4);
 
   glGenTextures(1, &tex_ID);
   glBindTexture(GL_TEXTURE_2D, tex_ID);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
                 w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (const GLvoid*)img);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
   glGenerateMipmap(GL_TEXTURE_2D);
 }
 

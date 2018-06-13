@@ -29,7 +29,9 @@ rgba FragmentShader::launch(const float* vertex_in, const float* dVdx, int n)
 
   rgba color;
   if(textures)
-    color = (*tex_units)[0].sampleNearestNeighbor(texcoord[0], texcoord[1]);
+    //color = (*tex_units)[0].sampleNearestNeighbor(texcoord[0], texcoord[1]);
+    color = (*tex_units)[0].sampleBilinear(texcoord[0], texcoord[1]);
+    //color = (*tex_units)[0].sampleTrilinear(texcoord[0], texcoord[1], dVdx[10], dVdx[11]);
   else
     color = model_color;
 
