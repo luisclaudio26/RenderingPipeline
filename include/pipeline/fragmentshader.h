@@ -11,16 +11,28 @@
 class FragmentShader
 {
 private:
+  inline const float* get_uniform(const std::string& name)
+  {
+    int stride = (*uniforms)[name].stride;
+    return &uniform_data[stride];
+  }
+
+  inline const float* get_attribute(const std::string& name,
+                                    const float* vbuffer)
+  {
+    int stride = (*attribs)[name].stride;
+    return &vbuffer[4 + stride];
+  }
+
 public:
   rgba launch(const float* vertex_in, const float* dVdx, int n);
 
-  //TODO: This should disappear once the uniform variables
-  //management is properly implemented.
-  vec3 *eye; rgba model_color;
-  bool textures;
+  // uniform memory
+  const float *uniform_data;
+  std::map<std::string, Attribute> *uniforms;
 
-  std::vector<TextureSampler> *tex_units;
   std::map<std::string, Attribute> *attribs;
+  std::vector<TextureSampler> *tex_units;
 };
 
 #endif

@@ -34,9 +34,11 @@ private:
 public:
   vec3();
   vec3(float x, float y, float z);
+  vec3(const float* e);
 
   float operator()(int i) const;
   float& operator()(int i);
+  const float* data() { return (const float*)e; }
 
   vec3 operator+(const vec3& rhs) const;
   void operator+=(const vec3& rhs);
@@ -86,6 +88,7 @@ private:
 public:
   mat4();
   mat4(const vec4& c1, const vec4& c2, const vec4& c3, const vec4& c4);
+  mat4(const float* e);
 
   float& operator()(int i, int j);
   float operator()(int i, int j) const;

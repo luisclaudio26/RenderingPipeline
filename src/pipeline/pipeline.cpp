@@ -9,19 +9,29 @@ GraphicPipeline::GraphicPipeline()
   // preallocate some texture units
   tex_units.resize(10);
 
+  // preallocate uniform memory
+  uniform_data = new float[100];
+  uniform_data_index = 0;
+
   // both the vertex and fragment shader store only
   // a pointer to the actual attribute dictionary.
   // This complicates things a bit but spare us of
   // having to update it on two places manually.
   vshader.attribs = &attribs;
+  vshader.uniforms = &uniforms;
+  vshader.uniform_data = (const float*)uniform_data;
+
   fshader.attribs = &attribs;
   fshader.tex_units = &tex_units;
+  fshader.uniforms = &uniforms;
+  fshader.uniform_data = (const float*)uniform_data;
 }
 
 GraphicPipeline::~GraphicPipeline()
 {
   if(vbuffer_in) delete[] vbuffer_in;
   if(vbuffer) delete[] vbuffer;
+  delete[] uniform_data;
 }
 
 void GraphicPipeline::bind_tex_unit(const Texture& tex, int unit)
@@ -74,28 +84,36 @@ void GraphicPipeline::define_attribute(const std::string& name, int n_floats, in
   attribs[name] = a;
 }
 
-void GraphicPipeline::upload_uniform(const mat4& model,
-                                      const mat4& view,
-                                      const mat4& projection,
-                                      const mat4& viewport,
-                                      const vec3& eye,
-                                      const rgba& model_color,
-                                      bool textures)
+void GraphicPipeline::upload_uniform(const std::string& name,
+                                      const float* data, int n_floats)
 {
-  this->model = model;
-  this->view = view;
-  this->projection = projection;
+  //copy data
+  memcpy(&uniform_data[uniform_data_index], data, n_floats*sizeof(float));
+
+  //define attribute address
+  Attribute a;
+  a.size = n_floats;
+  a.stride = uniform_data_index;
+  uniforms[name] = a;
+
+  uniform_data_index += n_floats;
+}
+
+void GraphicPipeline::upload_uniform(const std::string& name, float d)
+{
+  uniform_data[uniform_data_index] = d;
+
+  Attribute a;
+  a.size = 1;
+  a.stride = uniform_data_index;
+  uniforms[name] = a;
+
+  uniform_data_index++;
+}
+
+void GraphicPipeline::set_viewport(const mat4& viewport)
+{
   this->viewport = viewport;
-  this->eye = eye;
-
-  vshader.model = &this->model;
-  vshader.view = &this->view;
-  vshader.projection = &this->projection;
-  vshader.viewport = &this->viewport;
-
-  fshader.eye = &this->eye;
-  fshader.model_color = model_color;
-  fshader.textures = textures;
 }
 
 void GraphicPipeline::render(Framebuffer& render_target, bool cull_back, bool fill)
@@ -106,6 +124,12 @@ void GraphicPipeline::render(Framebuffer& render_target, bool cull_back, bool fi
 
   //NOTE: In OpenGL architecture, culling happens in the primitive
   //assembly stage, which is the first part of rasterization
+
+  // OpenGL demands us to reupload uniforms every loop,
+  // so we imitate this behaviour here. We could define a flag
+  // not to override the previously uploaded uniforms, but this
+  // is very likely to be useless.
+  uniform_data_index = 0;
 
   vertex_processing();
   vbuffer_sz = primitive_clipping();

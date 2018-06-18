@@ -34,16 +34,15 @@ void Engine::drawContents()
 
   // TEXTURE SAMPLING
   // [X] Bind a loaded texture to a given texture unit
-  // [ ] Bind texture unit id to uniform
+  // [X] Bind texture unit id to uniform
   gp.bind_tex_unit(checker, 0);
 
-  gp.upload_uniform(model,
-                    view,
-                    proj,
-                    viewport,
-                    param.cam.eye,
-                    param.model_color,
-                    param.shading == 4);
+  gp.set_viewport(viewport);
+  gp.upload_uniform("view", view.data(), 16);
+  gp.upload_uniform("model", model.data(), 16);
+  gp.upload_uniform("proj", proj.data(), 16);  
+  gp.upload_uniform("tex", 0.0);
+  //gp.upload_uniform("eye", param.cam.eye.data(), 3);
 
   gp.render(fbo, param.front_face == GL_CCW, param.draw_mode != GL_LINE);
 

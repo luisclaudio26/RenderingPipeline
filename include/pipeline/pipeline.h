@@ -60,9 +60,22 @@ private:
   // uniform.
   std::vector<TextureSampler> tex_units;
 
-  // Uniform matrices
+  // Uniform variables are stored inside a contiguous memory
+  // area. OpenGL doesn't require one to set how many memory
+  // will be needed to store uniforms, so we use a vector here
+  // to reproduce this behaviour.
+  // If we know the total size of uniforms we'll need we
+  // can .reserve() this vector.
+  float *uniform_data; int uniform_data_index;
+  std::map<std::string, Attribute> uniforms;
+
+  /*
   mat4 model, view, projection, viewport;
   vec3 eye, light;
+  */
+
+  // viewport transformation
+  mat4 viewport;
 
   // shaders <3
   VertexShader vshader;
@@ -93,13 +106,12 @@ public:
   // variable management system working and will be replaced
   // by something that receives a variable and a string ID,
   // just like the attributes
-  void upload_uniform(const mat4& model,
-                      const mat4& view,
-                      const mat4& projection,
-                      const mat4& viewport,
-                      const vec3& eye,
-                      const rgba& model_color,
-                      bool textures);
+  void upload_uniform(const std::string& name, const float* data, int n_floats);
+  void upload_uniform(const std::string& name, float d);
+
+  // define viewport. this is not a uniform variable because
+  // we need to access it outside the programmable shaders.
+  void set_viewport(const mat4& viewport);
 
   // upload a set of floats containing all the attributes
   // contiguously defined. This can be slow because we make

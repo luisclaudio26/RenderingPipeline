@@ -1,4 +1,5 @@
 #include "../include/matrix.h"
+#include <cstring>
 #include <cmath>
 
 //---------------------------------
@@ -18,6 +19,7 @@ vec2 vec2::operator-(const vec2& rhs) const
 //---------------------------------
 vec3::vec3() { for(int i = 0; i < 3; ++i) e[i] = 0.0f; }
 vec3::vec3(float x, float y, float z) { e[0] = x; e[1] = y; e[2] = z; }
+vec3::vec3(const float* e) { memcpy(this->e, e, sizeof(float)*3); }
 float vec3::operator()(int i) const { return e[i]; }
 float& vec3::operator()(int i) { return e[i]; }
 vec3 vec3::cross(const vec3& rhs) const
@@ -30,13 +32,11 @@ float vec3::dot(const vec3& rhs) const
 {
   return e[0]*rhs(0)+e[1]*rhs(1)+e[2]*rhs(2);
 }
-
 vec3 vec3::unit() const
 {
   float norm = sqrtf( (*this).dot(*this) );
   return vec3(e[0]/norm, e[1]/norm, e[2]/norm);
 }
-
 vec3 vec3::operator-() const
 {
   return vec3(-e[0], -e[1], -e[2]);
@@ -144,6 +144,11 @@ mat4::mat4(const vec4& c1, const vec4& c2, const vec4& c3, const vec4& c4)
     (*this)(i,2) = c3(i);
     (*this)(i,3) = c4(i);
   }
+}
+
+mat4::mat4(const float* e)
+{
+  memcpy( this->e, e, sizeof(float)*16 );
 }
 
 float& mat4::operator()(int i, int j)
