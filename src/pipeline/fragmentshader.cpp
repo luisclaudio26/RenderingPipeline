@@ -27,13 +27,10 @@ rgba FragmentShader::launch(const float* vertex_in, const float* dVdx, int n)
   //rgba tex_sample = (*tex_units)[0].sampleTrilinear(texcoord[0], texcoord[1], dVdx[10], dVdx[11]);
   //rgba tex_sample = (*tex_units)[0].sampleBilinear(texcoord[0], texcoord[1]);
 
-  rgba color;
-  if(textures)
-    color = (*tex_units)[0].sampleNearestNeighbor(texcoord[0], texcoord[1]);
-  else
-    color = model_color;
+  rgba color = (*tex_units)[0].sampleNearestNeighbor(texcoord[0], texcoord[1]);
 
   // phong shading
+  /*
   vec3 v2l = (LIGHT_POS - p).unit();
   vec3 v2e = (*eye - p).unit();
   vec3 h = (v2l+v2e).unit();
@@ -43,6 +40,7 @@ rgba FragmentShader::launch(const float* vertex_in, const float* dVdx, int n)
 
   rgba out = color*(0.1f + diff_k) + rgba(1.0f,1.0f,1.0f,0.0f)*spec_k;
   out(3) = 1.0f;
+  */
 
-  return out;
+  return color;
 }

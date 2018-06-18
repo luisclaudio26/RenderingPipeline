@@ -5,7 +5,7 @@
 #include "pipeline/pipeline.h"
 #include "pipeline/texture.h"
 #include "mesh.h"
-#include "ogl.h"
+#include "param.h"
 
 const int DEFAULT_WIDTH = 960;
 const int DEFAULT_HEIGHT = 540;
@@ -32,7 +32,6 @@ private:
 
   //comparison window
   SceneParameters param;
-  OGL *ogl;
 
 public:
   Engine(const char* path);
