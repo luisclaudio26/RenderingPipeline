@@ -21,6 +21,8 @@ void Engine::drawContents()
   //--------------------------------
   //----------- RENDERING ----------
   //--------------------------------
+  clock_t start = clock();
+
   //proj and viewport could be precomputed!
   mat4 view = mat4::view(param.cam.eye, param.cam.eye + param.cam.look_dir, param.cam.up);
   mat4 proj = mat4::perspective(param.cam.FoVy, param.cam.FoVx,
@@ -76,6 +78,10 @@ void Engine::drawContents()
   //draw stuff
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   shader.drawArray(GL_TRIANGLES, 0, 6);
+
+  //count time
+   clock_t elapsed = clock() - start;
+   printf("\rTime per frame: %fs", ((double)elapsed)/CLOCKS_PER_SEC);
 }
 
 bool Engine::resizeEvent(const Eigen::Vector2i &size)
