@@ -26,14 +26,6 @@ void Engine::drawContents()
   mat4 proj = mat4::perspective(param.cam.FoVy, param.cam.FoVx,
                                 param.cam.near, param.cam.far);
   mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
-  vec3 eye(param.cam.eye.x,
-            param.cam.eye.y,
-            param.cam.eye.z);
-
-  rgba model_color(param.model_color[0],
-                    param.model_color[1],
-                    param.model_color[2],
-                    1.0f);
 
   fbo.clearDepthBuffer();
   fbo.clearColorBuffer();
@@ -43,8 +35,14 @@ void Engine::drawContents()
   // [ ] Bind texture unit id to uniform
   gp.bind_tex_unit(checker, 0);
 
-  gp.upload_uniform(model, view, proj, viewport, eye,
-                    model_color, param.shading == 4);
+  gp.upload_uniform(model,
+                    view,
+                    proj,
+                    viewport,
+                    param.cam.eye,
+                    param.model_color,
+                    param.shading == 4);
+
   gp.render(fbo, param.front_face == GL_CCW, param.draw_mode != GL_LINE);
 
   GLubyte *color_buffer = fbo.colorBuffer();
@@ -106,12 +104,12 @@ Engine::Engine(const char* path)
   // --------- Scene setup ----------
   // --------------------------------
   float angle = 0.0174533f;
-  param.cam.eye = glm::vec3(0.0f, 0.0f, 0.0f);
-  param.cam.up = glm::vec3(0.0f, 1.0f, 0.0f);
+  param.cam.eye = vec3(0.0f, 0.0f, 0.0f);
+  param.cam.up = vec3(0.0f, 1.0f, 0.0f);
   param.cam.cos_angle = (float)cos(angle);
   param.cam.sin_angle = (float)sin(angle);
-  param.cam.look_dir = glm::vec3(0.0f, 0.0f, -1.0f);
-  param.cam.right = glm::vec3(1.0f, 0.0f, 0.0f);
+  param.cam.look_dir = vec3(0.0f, 0.0f, -1.0f);
+  param.cam.right = vec3(1.0f, 0.0f, 0.0f);
   param.cam.step = 0.1f;
   param.cam.near = 1.0f;
   param.cam.far = 10.0f;
@@ -120,8 +118,8 @@ Engine::Engine(const char* path)
   param.cam.lock_view = false;
   param.front_face = GL_CCW;
   param.draw_mode = GL_FILL;
-  param.model_color<<0.0f, 0.0f, 1.0f;
-  param.light<<2.0f, 1.0f, -1.0f;
+  param.model_color = rgba(0.0f, 0.0f, 1.0f, 1.0f);
+  param.light = vec3(2.0f, 1.0f, -1.0f);
   param.shading = 0;
 
   // Load model and unpack.
@@ -256,8 +254,8 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
     param.cam.eye += (-param.cam.right) * param.cam.step;
     if(param.cam.lock_view)
     {
-      param.cam.look_dir = glm::normalize(glm::vec3(0.0f, 0.0f, -5.5f) - param.cam.eye);
-      param.cam.right = glm::cross(param.cam.look_dir, param.cam.up);
+      param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
+      param.cam.right = param.cam.look_dir.cross(param.cam.up);
     }
     return true;
   }
@@ -265,8 +263,8 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
     param.cam.eye += param.cam.right * param.cam.step;
     if(param.cam.lock_view)
     {
-      param.cam.look_dir = glm::normalize(glm::vec3(0.0f, 0.0f, -5.5f) - param.cam.eye);
-      param.cam.right = glm::cross(param.cam.look_dir, param.cam.up);
+      param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
+      param.cam.right = param.cam.look_dir.cross(param.cam.up);
     }
     return true;
   }
@@ -284,8 +282,8 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
     param.cam.eye += param.cam.up * param.cam.step;
     if(param.cam.lock_view)
     {
-      param.cam.look_dir = glm::normalize(glm::vec3(0.0f, 0.0f, -5.5f) - param.cam.eye);
-      param.cam.up = glm::cross(param.cam.right, param.cam.look_dir);
+      param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
+      param.cam.up = param.cam.right.cross(param.cam.look_dir);
     }
 
     return true;
@@ -294,8 +292,8 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
     param.cam.eye += (-param.cam.up) * param.cam.step;
     if(param.cam.lock_view)
     {
-      param.cam.look_dir = glm::normalize(glm::vec3(0.0f, 0.0f, -5.5f) - param.cam.eye);
-      param.cam.up = glm::cross(param.cam.right, param.cam.look_dir);
+      param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
+      param.cam.up = param.cam.right.cross(param.cam.look_dir);
     }
     return true;
   }
@@ -304,7 +302,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   if( key == GLFW_KEY_U && action == GLFW_REPEAT ) {
     if(param.cam.lock_view) return true;
 
-    glm::vec3 u = param.cam.look_dir, v = param.cam.up;
+    vec3 u = param.cam.look_dir, v = param.cam.up;
     param.cam.look_dir = u*param.cam.cos_angle + v*param.cam.sin_angle;
     param.cam.up = -u*param.cam.sin_angle + v*param.cam.cos_angle;
 
@@ -313,7 +311,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   if( key == GLFW_KEY_J && action == GLFW_REPEAT ) {
     if(param.cam.lock_view) return true;
 
-    glm::vec3 u = param.cam.look_dir, v = param.cam.up;
+    vec3 u = param.cam.look_dir, v = param.cam.up;
     param.cam.look_dir = u*param.cam.cos_angle + -v*param.cam.sin_angle;
     param.cam.up = u*param.cam.sin_angle + v*param.cam.cos_angle;
 
@@ -322,7 +320,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   if( key == GLFW_KEY_K && action == GLFW_REPEAT ) {
     if(param.cam.lock_view) return true;
 
-    glm::vec3 u = param.cam.right, v = param.cam.look_dir;
+    vec3 u = param.cam.right, v = param.cam.look_dir;
     param.cam.right = u*param.cam.cos_angle + -v*param.cam.sin_angle;
     param.cam.look_dir = u*param.cam.sin_angle + v*param.cam.cos_angle;
 
@@ -331,7 +329,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   if( key == GLFW_KEY_H && action == GLFW_REPEAT ) {
     if(param.cam.lock_view) return true;
 
-    glm::vec3 u = param.cam.right, v = param.cam.look_dir;
+    vec3 u = param.cam.right, v = param.cam.look_dir;
     param.cam.right = u*param.cam.cos_angle + v*param.cam.sin_angle;
     param.cam.look_dir = -u*param.cam.sin_angle + v*param.cam.cos_angle;
 
@@ -342,7 +340,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   if( key == GLFW_KEY_M && action == GLFW_REPEAT ) {
     if(param.cam.lock_view) return true;
 
-    glm::vec3 u = param.cam.right, v = param.cam.up;
+    vec3 u = param.cam.right, v = param.cam.up;
     param.cam.right = u*param.cam.cos_angle + -v*param.cam.sin_angle;
     param.cam.up = u*param.cam.sin_angle + v*param.cam.cos_angle;
 
@@ -351,7 +349,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   if( key == GLFW_KEY_N && action == GLFW_REPEAT ) {
     if(param.cam.lock_view) return true;
 
-    glm::vec3 u = param.cam.right, v = param.cam.up;
+    vec3 u = param.cam.right, v = param.cam.up;
     param.cam.right = u*param.cam.cos_angle + v*param.cam.sin_angle;
     param.cam.up = -u*param.cam.sin_angle + v*param.cam.cos_angle;
 

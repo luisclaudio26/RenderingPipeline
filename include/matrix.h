@@ -134,15 +134,6 @@ public:
                 vec4(-eye.dot(u), -eye.dot(v), -eye.dot(w), 1.0f));
   }
 
-  // little adaptation
-  static mat4 view(const glm::vec3& eye, const glm::vec3& look_at,
-                    const glm::vec3& up)
-  {
-      return view(vec3(eye.x, eye.y, eye.z),
-                  vec3(look_at.x, look_at.y, look_at.z),
-                  vec3(up.x, up.y, up.z));
-  }
-
   static mat4 perspective(float fovy, float fovx, float near, float far)
   {
       //compute bounds of the projection plane
