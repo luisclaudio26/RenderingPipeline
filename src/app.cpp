@@ -173,6 +173,9 @@ Engine::Engine(const char* path)
   // ---------------------------------------------
   // ---------- Upload data to pipeline ----------
   // ---------------------------------------------
+  gp.set_fragment_shader(*(new FragmentShader()));
+  gp.set_vertex_shader(*(new VertexShader()));
+
   gp.upload_data(mesh_data, 8);
   gp.define_attribute("pos", 3, 0);
   gp.define_attribute("normal", 3, 3);

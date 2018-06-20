@@ -4,7 +4,11 @@
 // -------------- Public API ---------------
 // -----------------------------------------
 GraphicPipeline::GraphicPipeline()
-  : vbuffer_in(NULL), vbuffer(NULL), vertex_size(0)
+  : vbuffer_in(NULL),
+    vbuffer(NULL),
+    vertex_size(0),
+    vshader(NULL),
+    fshader(NULL)
 {
   // preallocate some texture units
   tex_units.resize(10);
@@ -12,19 +16,6 @@ GraphicPipeline::GraphicPipeline()
   // preallocate uniform memory
   uniform_data = new float[100];
   uniform_data_index = 0;
-
-  // both the vertex and fragment shader store only
-  // a pointer to the actual attribute dictionary.
-  // This complicates things a bit but spare us of
-  // having to update it on two places manually.
-  vshader.attribs = &attribs;
-  vshader.uniforms = &uniforms;
-  vshader.uniform_data = (const float*)uniform_data;
-
-  fshader.attribs = &attribs;
-  fshader.tex_units = &tex_units;
-  fshader.uniforms = &uniforms;
-  fshader.uniform_data = (const float*)uniform_data;
 }
 
 GraphicPipeline::~GraphicPipeline()
@@ -32,6 +23,26 @@ GraphicPipeline::~GraphicPipeline()
   if(vbuffer_in) delete[] vbuffer_in;
   if(vbuffer) delete[] vbuffer;
   delete[] uniform_data;
+}
+
+void GraphicPipeline::set_fragment_shader(FragmentShader& fshader)
+{
+  // both the vertex and fragment shader store only
+  // a pointer to the actual attribute dictionary.
+  // This complicates things a bit but spare us of
+  // having to update it on two places manually.
+  fshader.attribs = &attribs;
+  fshader.tex_units = &tex_units;
+  fshader.uniforms = &uniforms;
+  fshader.uniform_data = (const float*)uniform_data;
+  this->fshader = &fshader;
+}
+void GraphicPipeline::set_vertex_shader(VertexShader& vshader)
+{
+  vshader.attribs = &attribs;
+  vshader.uniforms = &uniforms;
+  vshader.uniform_data = (const float*)uniform_data;
+  this->vshader = &vshader;
 }
 
 void GraphicPipeline::bind_tex_unit(const Texture& tex, int unit)
@@ -186,7 +197,7 @@ void GraphicPipeline::vertex_processing()
     vec4 out_pos;
     float* target = &vbuffer[vbuffer_elem+4];
 
-    vshader.launch(vertex_data, target, vertex_size, out_pos);
+    vshader->launch(vertex_data, target, vertex_size, out_pos);
 
     // setup elements Position and 1.0 in vbuffer
     for(int i = 0; i < 4; ++i) vbuffer[vbuffer_elem+i] = out_pos(i);
@@ -519,7 +530,7 @@ void GraphicPipeline::rasterization(Framebuffer& render_target, bool fill)
           scalar_vertex(dV_dx, 1.0f/W(f), dVdx_w, vbuffer_elem_sz);
 
           // invoke fragment shader for the interpolated fragment
-          rgba frag_color = fshader.launch(frag, dVdx_w, vbuffer_elem_sz);
+          rgba frag_color = fshader->launch(frag, dVdx_w, vbuffer_elem_sz);
 
           // write to framebuffer
           RGBA8 color_ubyte;

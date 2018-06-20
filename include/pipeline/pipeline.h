@@ -77,9 +77,18 @@ private:
   // viewport transformation
   mat4 viewport;
 
-  // shaders <3
-  VertexShader vshader;
-  FragmentShader fshader;
+  // shaders. Pipeline is not responsible for shader deletion! Client code
+  // must delete it somehow.
+  // Shaders are actually CLOSURES (i.e. functions with the needed context
+  // to execute them), because we need pointers to the loaded uniforms,
+  // attributes and texture units. For the moment, the easiest way to implement
+  // this is using abstract classes with virtual methods, which is extremely
+  // inefficient (and no implementable in GPUs). How to better implement this?
+  // Maybe defining uniforms/attributes/texture units as global and thus shaders
+  // would have access to it, or simply pass everything as argument (which would
+  // make the function more costly).
+  VertexShader *vshader;
+  FragmentShader *fshader;
 
   // fixed stages
   void vertex_processing();
@@ -91,6 +100,12 @@ private:
 public:
   GraphicPipeline();
   ~GraphicPipeline();
+
+  // set shaders. References cannot be const because we'll
+  // modify the shader objects by setting their Uniform/Attribute
+  // pointers to the ones allocated by Pipeline
+  void set_fragment_shader(FragmentShader& fshader);
+  void set_vertex_shader(VertexShader& vshader);
 
   // binds a given texture object to the target unit, so
   // when using the sampler2D method of this texture unit

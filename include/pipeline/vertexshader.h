@@ -26,8 +26,8 @@ private:
   }
 
 public:
-  void launch(const float* vertex_in, float* vertex_out,
-              int vertex_sz, vec4& position);
+  virtual void launch(const float* vertex_in, float* vertex_out,
+                      int vertex_sz, vec4& position);
 
   // vertex attributes positions/strides
   std::map<std::string, Attribute> *attribs;

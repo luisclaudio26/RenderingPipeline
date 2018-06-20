@@ -25,7 +25,7 @@ private:
   }
 
 public:
-  rgba launch(const float* vertex_in, const float* dVdx, int n);
+  virtual rgba launch(const float* vertex_in, const float* dVdx, int n);
 
   // uniform memory
   const float *uniform_data;
