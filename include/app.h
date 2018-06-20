@@ -7,6 +7,8 @@
 #include "mesh.h"
 #include "param.h"
 
+#include "../shaders/octreebuilder.h"
+
 const int DEFAULT_WIDTH = 960;
 const int DEFAULT_HEIGHT = 540;
 
@@ -14,6 +16,8 @@ class Engine : public nanogui::Screen
 {
 private:
   // rendering pipeline
+  VertexShader vshader;
+  OctreeBuilderShader fshader;
   GraphicPipeline gp;
   Framebuffer fbo;
 

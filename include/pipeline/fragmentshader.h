@@ -10,7 +10,7 @@
 
 class FragmentShader
 {
-private:
+protected:
   inline const float* get_uniform(const std::string& name)
   {
     int stride = (*uniforms)[name].stride;

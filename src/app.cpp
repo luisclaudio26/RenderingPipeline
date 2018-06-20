@@ -18,23 +18,14 @@ void Engine::draw(NVGcontext *ctx)
 
 void Engine::drawContents()
 {
-  //--------------------------------
-  //----------- RENDERING ----------
-  //--------------------------------
+  //-------------------------------------
+  //----------- OCTREE BUILDUP ----------
+  //-------------------------------------
   clock_t start = clock();
 
   //proj and viewport could be precomputed!
   mat4 view = mat4::view(param.cam.eye, param.cam.eye + param.cam.look_dir, param.cam.up);
-
-  /*
-  mat4 proj = mat4::perspective(param.cam.FoVy, param.cam.FoVx,
-                                param.cam.near, param.cam.far);
-                                */
-
-  mat4 proj = mat4::orthogonal(-3.0f, 3.0f, -3.0f, 3.0f,
-                               param.cam.near, param.cam.far);
-
-
+  mat4 proj = mat4::orthogonal(-3.0f, 3.0f, -3.0f, 3.0f, param.cam.near, param.cam.far);
   mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
 
   fbo.clearDepthBuffer();
@@ -170,12 +161,15 @@ Engine::Engine(const char* path)
   checker.load_from_file("../data/mandrill_256.jpg");
   checker.compute_mips();
 
+  // ---------------------------------
+  // ---------- Set shaders ----------
+  // ---------------------------------
+  gp.set_fragment_shader(fshader);
+  gp.set_vertex_shader(vshader);
+
   // ---------------------------------------------
   // ---------- Upload data to pipeline ----------
   // ---------------------------------------------
-  gp.set_fragment_shader(*(new FragmentShader()));
-  gp.set_vertex_shader(*(new VertexShader()));
-
   gp.upload_data(mesh_data, 8);
   gp.define_attribute("pos", 3, 0);
   gp.define_attribute("normal", 3, 3);
