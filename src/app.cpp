@@ -25,8 +25,16 @@ void Engine::drawContents()
 
   //proj and viewport could be precomputed!
   mat4 view = mat4::view(param.cam.eye, param.cam.eye + param.cam.look_dir, param.cam.up);
+
+  /*
   mat4 proj = mat4::perspective(param.cam.FoVy, param.cam.FoVx,
                                 param.cam.near, param.cam.far);
+                                */
+
+  mat4 proj = mat4::orthogonal(-3.0f, 3.0f, -3.0f, 3.0f,
+                               param.cam.near, param.cam.far);
+
+
   mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
 
   fbo.clearDepthBuffer();
@@ -40,7 +48,7 @@ void Engine::drawContents()
   gp.set_viewport(viewport);
   gp.upload_uniform("view", view.data(), 16);
   gp.upload_uniform("model", model.data(), 16);
-  gp.upload_uniform("proj", proj.data(), 16);  
+  gp.upload_uniform("proj", proj.data(), 16);
   gp.upload_uniform("tex", 0.0);
   //gp.upload_uniform("eye", param.cam.eye.data(), 3);
 

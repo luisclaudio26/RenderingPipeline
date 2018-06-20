@@ -180,6 +180,18 @@ public:
       //final matrix is just the three above composed
       return norm * scale * shear;
   }
+
+  static mat4 orthogonal(float l, float r,
+                          float b, float t,
+                          float n, float f)
+  {
+    // simply map the cube defined by (l,b,n) and (r,t,f)
+    // to the cube (-1,-1,-1) and (+1,+1,+1)
+    return mat4( vec4(2.0/(r-l), 0.0f, 0.0f, 0.0f),
+                  vec4(0.0f, 2.0f/(t-b), 0.0f, 0.0f),
+                  vec4(0.0f, 0.0f, -2.0f/(f-n), 0.0f),
+                  vec4(-(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1.0f) );
+  }
 };
 
 #endif
