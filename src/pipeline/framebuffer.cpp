@@ -2,8 +2,8 @@
 
 Framebuffer::Framebuffer()
 {
-  color = NULL;
-  depth = NULL;
+  color = nullptr;
+  depth = nullptr;
   w = h = 0;
 }
 
@@ -27,8 +27,8 @@ void Framebuffer::resizeBuffer(int w, int h)
   //so it doesn't need to copy data around in the case where
   //we can just extend or shrink memory
   this->w = w; this->h = h;
-  delete[] color; color = new RGBA8[w*h];
-  delete[] depth; depth = new float[w*h];
+  if(color) delete[] color; color = new RGBA8[w*h];
+  if(depth) delete[] depth; depth = new float[w*h];
 }
 
 int Framebuffer::width() const  { return w; }

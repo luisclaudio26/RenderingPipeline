@@ -20,7 +20,6 @@ int main(int argc, char** args)
     mesh_data.push_back(p(1));
     mesh_data.push_back(p(2));
 
-
     Eigen::Vector3f n = mesh.mNormal.col(i);
     mesh_data.push_back(n(0));
     mesh_data.push_back(n(1));
@@ -48,7 +47,7 @@ int main(int argc, char** args)
   // our framebuffer must be 128x128x128 (because
   // each fragment will become a potential voxel
   // element).
-  Framebuffer fbo; fbo.resizeBuffer(GRID_RES, GRID_RES);
+  Framebuffer fbo(GRID_RES, GRID_RES);
 
   // upload data
   gp.upload_data(mesh_data, 8);
@@ -77,31 +76,48 @@ int main(int argc, char** args)
   // compute minimal CUBIC bounding box which will be used
   // to define the rasterization limits
   vec3 diff = bb_max - bb_min;
+  int greatest_axis = 0;
+
+  for(int i = 0; i < 3; ++i)
+    if(diff(i) > diff(greatest_axis))
+      greatest_axis = i;
+
+  // side of the cubic bounding box
+  float l = diff(greatest_axis);
+
+  vec3 cubic_bb_min = bb_min;
+  vec3 cubic_bb_max = bb_min + vec3(l,l,l);
+
+  printf("Cubic bounding box: \n");
+  printf("\t(%f, %f, %f) - (%f, %f, %f)\n", bb_min(0), bb_min(1), bb_min(2),
+                                            cubic_bb_max(0),
+                                            cubic_bb_max(1),
+                                            cubic_bb_max(2));
 
   // -------------------------------
   // -------- BUILD OCTREE ---------
   // -------------------------------
+  float half_l = l * 0.5f;
   mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
-  mat4 view = mat4::view(param.cam.eye, param.cam.eye + param.cam.look_dir, param.cam.up);
-  mat4 proj = mat4::orthogonal(-3.0f, 3.0f, -3.0f, 3.0f, param.cam.near, param.cam.far);
+  mat4 proj = mat4::orthogonal(-half_l, half_l, -half_l, half_l, 0.5f, l + 1.5f);
+
+  //XY view
+  vec3 eye = cubic_bb_min;
+  eye(0) = cubic_bb_min(0) + half_l;
+  eye(1) = cubic_bb_min(1) + half_l;
+  eye(2) = cubic_bb_min(2) - 1.0f;
+
+  mat4 view = mat4::view(eye, eye + vec3(0.0f, 0.0f, +1.0f),
+                          vec3(0.0f, 1.0f, 0.0f));
 
 
   fbo.clearDepthBuffer();
   fbo.clearColorBuffer();
-
-  // TEXTURE SAMPLING
-  // [X] Bind a loaded texture to a given texture unit
-  // [X] Bind texture unit id to uniform
-  gp.bind_tex_unit(checker, 0);
-
   gp.set_viewport(viewport);
+
   gp.upload_uniform("view", view.data(), 16);
   gp.upload_uniform("model", model.data(), 16);
   gp.upload_uniform("proj", proj.data(), 16);
-  gp.upload_uniform("tex", 0.0);
-  //gp.upload_uniform("eye", param.cam.eye.data(), 3);
 
-  gp.render(fbo, param.front_face == GL_CCW, param.draw_mode != GL_LINE);
-
-
+  gp.render(fbo);
 }

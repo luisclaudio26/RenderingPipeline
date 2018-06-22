@@ -4,11 +4,11 @@
 // -------------- Public API ---------------
 // -----------------------------------------
 GraphicPipeline::GraphicPipeline()
-  : vbuffer_in(NULL),
-    vbuffer(NULL),
+  : vbuffer_in(nullptr),
+    vbuffer(nullptr),
     vertex_size(0),
-    vshader(NULL),
-    fshader(NULL)
+    vshader(nullptr),
+    fshader(nullptr)
 {
   // preallocate some texture units
   tex_units.resize(10);
@@ -479,6 +479,12 @@ void GraphicPipeline::rasterization(Framebuffer& render_target, bool fill)
     for(int y = Y(v0); y <= Y(v2); ++y)
     {
       //starting and ending points for scanline rasterization
+      //TODO: this is causing the rasterization to try to update
+      //invalid positions on the color/depth buffer and then
+      //segfaults as of the deletion procedures. Check this!
+      // -> interesting; updating invalid positions on the color
+      // buffer probably messes up with the beginning of the
+      // next array
       int s = ROUND(X(start)), e = ROUND(X(end));
 
       // compute horizontal increment dV_dx
