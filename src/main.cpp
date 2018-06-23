@@ -3,6 +3,10 @@
 #include "../include/pipeline/pipeline.h"
 #include "../shaders/octreebuilder.h"
 #include "../include/mesh.h"
+#include <cstdio>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "../3rdparty/stb_image_write.h"
 
 const int GRID_RES = 128;
 
@@ -120,4 +124,10 @@ int main(int argc, char** args)
   gp.upload_uniform("proj", proj.data(), 16);
 
   gp.render(fbo);
+
+  // ---------------------------------
+  // -------- OUTPUT TO FILE ---------
+  // ---------------------------------
+  stbi_write_png("../out.png", fbo.width(), fbo.height(),
+                  4, (const void*)fbo.colorBuffer(), sizeof(RGBA8)*fbo.width());
 }

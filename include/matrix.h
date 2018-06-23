@@ -116,9 +116,9 @@ public:
                     vec4(0.0f, 0.0f, 1.0f, 0.0f),
                     vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-      //rescale from [0,1]² to [0,w] x [0,h]
-      mat4 rescale(vec4(width, 0.0f, 0.0f, 0.0f),
-                    vec4(0.0f, height, 0.0f, 0.0f),
+      //rescale from [0,1]² to [0,w-1] x [0,h-1]
+      mat4 rescale(vec4(width-1, 0.0f, 0.0f, 0.0f),
+                    vec4(0.0f, height-1, 0.0f, 0.0f),
                     vec4(0.0f, 0.0f, 1.0f, 0.0f),
                     vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
