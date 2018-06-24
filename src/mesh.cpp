@@ -2,7 +2,17 @@
 #include "../include/matrix.h"
 #include <cstdio>
 #include <iostream>
+#include <string>
 
+static std::string basedir_from_path(const std::string& path)
+{
+  std::size_t found = path.find_last_of('/');
+  return path.substr(0, found+1);
+}
+
+//----------------------------------
+//--------- FROM MESHOBJ.H ---------
+//----------------------------------
 void Mesh::transform_to_center(mat4& M)
 {
   //compute bounding box for this mesh
@@ -59,104 +69,75 @@ void Mesh::transform_to_center(mat4& M)
 
 void Mesh::load_file(const std::string& path)
 {
-  tris.clear();
-  FILE *file = fopen( path.c_str(), "r");
+  tinyobj::attrib_t attrib; std::string err;
+  std::vector<tinyobj::material_t> materials;
+  std::vector<tinyobj::shape_t> shapes;
 
-  //1. name
-  char obj_name[100];
-  fscanf(file, "Object name = %s\n", obj_name);
+  std::string basedir = basedir_from_path(path).c_str();
 
-  //2. triangle count
-  int n_tris;
-  fscanf(file, "# triangles = %d\n", &n_tris);
-  mPos = Eigen::MatrixXf(3, 3*n_tris);
-  mNormal = Eigen::MatrixXf(3, 3*n_tris);
-  mUV = Eigen::MatrixXf(2, 3*n_tris);
-  mAmb = Eigen::MatrixXf(3, 3*n_tris);
-  mDiff = Eigen::MatrixXf(3, 3*n_tris);
-  mSpec = Eigen::MatrixXf(3, 3*n_tris);
-  mShininess = Eigen::MatrixXf(1, 3*n_tris);
+  //load data from .obj file. unfortunatelly
+  //this will force the materials to be reloaded, but
+  //that's not much of a problem
+  tinyobj::LoadObj(&attrib, &shapes, &materials, &err,
+                    path.c_str(), basedir.c_str());
+  if(!err.empty()) printf("ERROR: %s\n", err.c_str() );
 
-  //3. material count
-  int n_mats;
-  fscanf(file, "Material count = %d\n", &n_mats);
-  std::vector<Material> mats_buffer; mats_buffer.resize(n_mats);
+  load_geometry_data(shapes, attrib);
+}
 
-  //4. materials (groups of 4 lines describing amb, diff, spec and shininess)
-  for(int i = 0; i < n_mats; ++i)
+
+void Mesh::load_geometry_data(const std::vector<tinyobj::shape_t>& shapes,
+                              const tinyobj::attrib_t& attrib)
+{
+  //this->tris.clear();
+
+  //load triangles for each shape
+  for(auto s = shapes.begin(); s != shapes.end(); ++s)
   {
-    Material& cur = mats_buffer[i];
-    fscanf(file, "ambient color %f %f %f\n", &cur.a[0], &cur.a[1], &cur.a[2]);
-    fscanf(file, "diffuse color %f %f %f\n", &cur.d[0], &cur.d[1], &cur.d[2]);
-    fscanf(file, "specular color %f %f %f\n", &cur.s[0], &cur.s[1], &cur.s[2]);
-    fscanf(file, "material shine %f\n", &cur.shininess);
+    unsigned int attrib_offset = 0;
+
+    for(int f_id = 0; f_id < s->mesh.num_face_vertices.size(); ++f_id)
+    {
+      int f = s->mesh.num_face_vertices[f_id];
+      Triangle face;
+
+      //load vertices for this triangle
+      //TODO: WILL FAIL IF MESH IS NOT MADE OF TRIANGLES!
+      for(int v_id = 0; v_id < f; v_id++)
+      {
+        tinyobj::index_t v = s->mesh.indices[attrib_offset + v_id];
+
+        float vx = attrib.vertices[3*v.vertex_index + 0];
+        float vy = attrib.vertices[3*v.vertex_index + 1];
+        float vz = attrib.vertices[3*v.vertex_index + 2];
+        pos.push_back(vx);
+        pos.push_back(vy);
+        pos.push_back(vz);
+
+        //face.v[v_id] = Vec3( vx, vy, vz );
+
+        if( !attrib.texcoords.empty() )
+        {
+          float tx = attrib.texcoords[2*v.texcoord_index + 0];
+          float ty = attrib.texcoords[2*v.texcoord_index + 1];
+          uv.push_back(tx);
+          uv.push_back(ty);
+
+          //face.uv[v_id] = Vec2( tx, ty );
+        }
+      }
+
+      //load pointer to material. all shapes share the same materials!
+      //WARNING: this won't work unless .obj files with no associated .mtl
+      //file set all material IDs to zero!!! also, this is why we need
+      //to load materials before
+      // int m_id = s->mesh.material_ids[f_id];
+      // if(m_id < 0 || m_id > this->materials.size()) printf("m_id = %d\n", m_id);
+
+      // face.material = this->materials[s->mesh.material_ids[f_id]];
+
+      // this->tris.push_back( face );
+      attrib_offset += f;
+    }
   }
-
-  //5. spurious lines
-  fscanf(file, "Texture = YES\n");
-  fscanf(file, "-- 3*[pos(x,y,z) normal(x,y,z) color_index text_coord] face_normal(x,y,z)\n");
-
-  //6. triangles (groups of 4 lines describing per vertex data and normal)
-  int tri_index = 0;
-  for(int i = 0; i < n_tris; ++i)
-  {
-    //Triangle& cur = tris[i];
-    int m_index_v0;
-    fscanf(file, "v0 %f %f %f %f %f %f %d %f %f\n", &mPos(0, tri_index+0),
-                                                    &mPos(1, tri_index+0),
-                                                    &mPos(2, tri_index+0),
-                                                    &mNormal(0, tri_index+0),
-                                                    &mNormal(1, tri_index+0),
-                                                    &mNormal(2, tri_index+0),
-                                                    &m_index_v0,
-                                                    &mUV(0, tri_index+0),
-                                                    &mUV(1, tri_index+0));
-
-    Material mv0 = mats_buffer[m_index_v0];
-    mAmb.col(tri_index)<<mv0.a[0], mv0.a[1], mv0.a[2];
-    mDiff.col(tri_index)<<mv0.d[0], mv0.d[1], mv0.d[2];
-    mSpec.col(tri_index)<<mv0.s[0], mv0.s[1], mv0.s[2];
-    mShininess.col(tri_index)<<mv0.shininess;
-
-    int m_index_v1;
-    fscanf(file, "v1 %f %f %f %f %f %f %d %f %f\n", &mPos(0, tri_index+1),
-                                                    &mPos(1, tri_index+1),
-                                                    &mPos(2, tri_index+1),
-                                                    &mNormal(0, tri_index+1),
-                                                    &mNormal(1, tri_index+1),
-                                                    &mNormal(2, tri_index+1),
-                                                    &m_index_v1,
-                                                    &mUV(0, tri_index+1),
-                                                    &mUV(1, tri_index+1));
-
-    Material mv1 = mats_buffer[m_index_v1];
-    mAmb.col(tri_index+1)<<mv1.a[0], mv1.a[1], mv1.a[2];
-    mDiff.col(tri_index+1)<<mv1.d[0], mv1.d[1], mv1.d[2];
-    mSpec.col(tri_index+1)<<mv1.s[0], mv1.s[1], mv1.s[2];
-    mShininess.col(tri_index+1)<<mv1.shininess;
-
-    int m_index_v2;
-    fscanf(file, "v2 %f %f %f %f %f %f %d %f %f\n", &mPos(0, tri_index+2),
-                                                    &mPos(1, tri_index+2),
-                                                    &mPos(2, tri_index+2),
-                                                    &mNormal(0, tri_index+2),
-                                                    &mNormal(1, tri_index+2),
-                                                    &mNormal(2, tri_index+2),
-                                                    &m_index_v2,
-                                                    &mUV(0, tri_index+2),
-                                                    &mUV(1, tri_index+2));
-
-    Material mv2 = mats_buffer[m_index_v2];
-    mAmb.col(tri_index+2)<<mv2.a[0], mv2.a[1], mv2.a[2];
-    mDiff.col(tri_index+2)<<mv2.d[0], mv2.d[1], mv2.d[2];
-    mSpec.col(tri_index+2)<<mv2.s[0], mv2.s[1], mv2.s[2];
-    mShininess.col(tri_index+2)<<mv2.shininess;
-
-    float fn1, fn2, fn3;
-    fscanf(file, "face normal %f %f %f\n", &fn1, &fn2, &fn3);
-
-    tri_index += 3;
-  }
-
-  fclose(file);
 }

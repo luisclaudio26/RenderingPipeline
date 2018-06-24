@@ -13,7 +13,13 @@ const int GRID_RES = 128;
 int main(int argc, char** args)
 {
   // load geometry
-  Mesh mesh; mesh.load_file("../data/cube_text.in");
+  Mesh mesh; mesh.load_file("../data/centered-bunny.obj");
+
+  for( auto f : mesh.pos )
+    printf("%f ", f);
+
+
+  /*
   std::vector<float> mesh_data;
   int n_vert = mesh.mPos.cols();
 
@@ -28,12 +34,10 @@ int main(int argc, char** args)
     mesh_data.push_back(n(0));
     mesh_data.push_back(n(1));
     mesh_data.push_back(n(2));
-
-    Eigen::Vector2f t = mesh.mUV.col(i);
-    mesh_data.push_back(t(0));
-    mesh_data.push_back(t(1));
   }
+  */
 
+  /*
   // model transformation
   mat4 model;
   mesh.transform_to_center(model);
@@ -54,10 +58,9 @@ int main(int argc, char** args)
   Framebuffer fbo(GRID_RES, GRID_RES);
 
   // upload data
-  gp.upload_data(mesh_data, 8);
+  gp.upload_data(mesh_data, 6);
   gp.define_attribute("pos", 3, 0);
   gp.define_attribute("normal", 3, 3);
-  gp.define_attribute("texcoord", 2, 6);
 
   // compute scene bounding box
   vec3 bb_min(FLT_MAX,FLT_MAX,FLT_MAX), bb_max(-FLT_MAX,-FLT_MAX,-FLT_MAX);
@@ -130,4 +133,5 @@ int main(int argc, char** args)
   // ---------------------------------
   stbi_write_png("../out.png", fbo.width(), fbo.height(),
                   4, (const void*)fbo.colorBuffer(), sizeof(RGBA8)*fbo.width());
+  */
 }

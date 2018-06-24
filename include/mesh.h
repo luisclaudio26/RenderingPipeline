@@ -6,6 +6,7 @@
 #include <nanogui/glutil.h>
 #include "primitives.h"
 #include "matrix.h"
+#include "../3rdparty/tiny_obj_loader.h"
 
 //the elements of our packed data
 struct Elem
@@ -17,9 +18,15 @@ struct Elem
 
 class Mesh
 {
+private:
+  void load_geometry_data(const std::vector<tinyobj::shape_t>& shapes,
+                          const tinyobj::attrib_t& attrib);
+
 public:
   Eigen::MatrixXf mPos, mNormal, mUV, mAmb, mDiff, mSpec, mShininess;
   std::vector<Triangle> tris;
+
+  std::vector<float> pos, uv;
 
   Mesh() {}
   Mesh(const std::string& path)
