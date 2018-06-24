@@ -48,7 +48,7 @@ int main(int argc, char** args)
   // framebuffer object. this must be coherent
   // with our voxel grid resolution; if we want
   // a voxel grid with resolution 128x128x128,
-  // our framebuffer must be 128x128x128 (because
+  // our framebuffer must be 128x128 (because
   // each fragment will become a potential voxel
   // element).
   Framebuffer fbo(GRID_RES, GRID_RES);

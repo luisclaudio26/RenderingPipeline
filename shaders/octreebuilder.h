@@ -8,14 +8,22 @@
 // to OctreeBuilder.launch() we update the very same
 // object. Ideally we should store those things as uniforms.
 
+//---------------------
 class OctreeBuilderShader : public FragmentShader
 {
+private:
+  static Octree tree;
+
 public:
   rgba launch(const float* vertex_in, const float* dVdx, int n) override
   {
     vec3 pos( get_attribute("pos", vertex_in) );
+
+    OctreeBuilderShader::tree.add_point(pos);
+
     return rgba(pos(0), pos(1), pos(2), 1.0f);
   }
 };
+
 
 #endif
