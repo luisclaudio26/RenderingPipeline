@@ -22,7 +22,6 @@ void VertexShader::launch(const float* vertex_in, float* vertex_out,
   vertex_out[2] = pos(2);
 
   pos = proj * view * pos;
-
   for(int i = 0; i < 4; ++i)
     position(i) = pos(i);
 

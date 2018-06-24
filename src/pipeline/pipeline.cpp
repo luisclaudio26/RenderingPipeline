@@ -127,7 +127,8 @@ void GraphicPipeline::set_viewport(const mat4& viewport)
   this->viewport = viewport;
 }
 
-void GraphicPipeline::render(Framebuffer& render_target, bool cull_back, bool fill)
+void GraphicPipeline::render(Framebuffer& render_target, bool zbuffer,
+                              bool cull_back, bool fill)
 {
   // reset vbuffer state variables, so loops controlled
   // by vbuffer_sz will be correct!
@@ -146,7 +147,7 @@ void GraphicPipeline::render(Framebuffer& render_target, bool cull_back, bool fi
   vbuffer_sz = primitive_clipping();
   perspective_division();
   vbuffer_sz = primitive_culling(cull_back);
-  rasterization(render_target, fill);
+  rasterization(render_target, zbuffer, fill);
 }
 
 // ---------------------------------------
@@ -324,7 +325,8 @@ int GraphicPipeline::primitive_culling(bool cull_back)
   return non_culled;
 }
 
-void GraphicPipeline::rasterization(Framebuffer& render_target, bool fill)
+void GraphicPipeline::rasterization(Framebuffer& render_target, bool zbuffer,
+                                    bool fill)
 {
   // akin to an assembly move. This will (should) be used for
   // buffers of the same size only, so we don't need the size
@@ -525,10 +527,15 @@ void GraphicPipeline::rasterization(Framebuffer& render_target, bool fill)
         // sRGB conversions), which MUST be performed after fragment shader
         // evaluation because we need a pixel sample.
 
-        // Here we mixed things in the same code for simplicity
-        if( Z(f) < render_target.getDepthBuffer(y,x) )  // early fragment tests
+        // Here we mixed things in the same code for simplicity.
+        // Execute fragment operations if zbuffer is disabled or
+        // it is enabled and fragment is closer then the one stored
+        // in z-buffer.
+        if( !zbuffer || Z(f) < render_target.getDepthBuffer(y,x) ) // early fragment tests
         {
-          render_target.setDepthBuffer(y, x, Z(f));     // early fragment tests
+          // TODO: this need not to performed if zbuffer is disabled,
+          // saving lots of memory accesses
+          render_target.setDepthBuffer(y, x, Z(f));
 
           // perspectively-correct interpolation of attributes
           // and derivatives

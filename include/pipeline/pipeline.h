@@ -95,7 +95,7 @@ private:
   int primitive_clipping();
   void perspective_division();
   int primitive_culling(bool cull_back);
-  void rasterization(Framebuffer& render_target, bool fill);
+  void rasterization(Framebuffer& render_target, bool zbuffer, bool fill);
 
 public:
   GraphicPipeline();
@@ -145,7 +145,8 @@ public:
   // After setting the attributes and uniforms,
   // render sends them through the pipeline and
   // stores the final result in the target Framebuffer
-  void render(Framebuffer& target, bool cull_back = true, bool fill = true);
+  void render(Framebuffer& target, bool zbuffer = true,
+              bool cull_back = true, bool fill = true);
 };
 
 #endif
