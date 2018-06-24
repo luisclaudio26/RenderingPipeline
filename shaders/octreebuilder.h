@@ -1,6 +1,12 @@
 #ifndef OCTREEBUILDER_H
+#define OCTREEBUILDER_H
 
 #include "../include/pipeline/fragmentshader.h"
+#include "octree.h"
+
+// TODO: create Octree object globally, so every call
+// to OctreeBuilder.launch() we update the very same
+// object. Ideally we should store those things as uniforms.
 
 class OctreeBuilderShader : public FragmentShader
 {
