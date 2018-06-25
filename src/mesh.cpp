@@ -63,7 +63,8 @@ void Mesh::transform_to_center(mat4& M)
                     vec4(0.0f, 0.0f, -5.5f, 1.0f));
 
   //final transformation
-  M = from_origin * scale * to_origin;
+  //M = from_origin * scale * to_origin;
+  M = scale * to_origin;
 }
 
 void Mesh::load_file(const std::string& path)

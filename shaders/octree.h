@@ -55,8 +55,11 @@ struct Octree
   Node root;
   vec3 min, max;
 
+  void set_aabb(const vec3& min, const vec3& max);
+
   // assumes MIN and MAX are consistently defined
   void add_point(const vec3& p);
+  bool is_inside(const vec3& p) const;
 };
 
 #endif

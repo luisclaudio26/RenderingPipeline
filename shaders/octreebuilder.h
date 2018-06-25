@@ -11,9 +11,6 @@
 //---------------------
 class OctreeBuilderShader : public FragmentShader
 {
-private:
-  static Octree tree;
-
 public:
   rgba launch(const float* vertex_in, const float* dVdx, int n) override
   {
@@ -21,6 +18,8 @@ public:
     OctreeBuilderShader::tree.add_point(pos);
     return rgba(0.0f, 0.0f, 1.0f, 1.0f);
   }
+
+  static Octree tree;
 };
 
 

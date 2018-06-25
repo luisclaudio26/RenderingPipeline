@@ -154,6 +154,9 @@ mat4::mat4(const float* e)
 
 float& mat4::operator()(int i, int j)
 {
+  //TODO: SO WRONG!!! this makes j the row, so
+  //everything that should be row-major is column-major
+  //now \=
   return e[i+4*j];
 }
 
