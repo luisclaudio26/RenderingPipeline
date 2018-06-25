@@ -16,16 +16,15 @@ static std::string basedir_from_path(const std::string& path)
 void Mesh::transform_to_center(mat4& M)
 {
   //compute bounding box for this mesh
-  vec3 min, max;
-  for(int i = 0; i < mPos.cols(); ++i)
-  {
-    Eigen::Vector3f p = mPos.col(i);
+  vec3 min(FLT_MAX,FLT_MAX,FLT_MAX);
+  vec3 max(-FLT_MAX,-FLT_MAX,-FLT_MAX);
+
+  for(int t = 0; t < pos.size(); t += 3)
     for(int j = 0; j < 3; ++j)
     {
-      min(j) = std::min( min(j), p(j) );
-      max(j) = std::max( max(j), p(j) );
+      min(j) = std::min( min(j), pos[t+j] );
+      max(j) = std::max( max(j), pos[t+j] );
     }
-  }
 
   //compute center of the bounding box.
   //this will be used to calculate the

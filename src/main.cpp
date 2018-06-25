@@ -13,31 +13,12 @@ const int GRID_RES = 128;
 int main(int argc, char** args)
 {
   // load geometry
-  Mesh mesh; mesh.load_file("../data/centered-bunny.obj");
+  Mesh mesh; mesh.load_file(args[1]);
 
-  for( auto f : mesh.pos )
-    printf("%f ", f);
-
-
-  /*
   std::vector<float> mesh_data;
-  int n_vert = mesh.mPos.cols();
+  for( auto p : mesh.pos )
+    mesh_data.push_back(p);
 
-  for(int i = 0; i < n_vert; ++i)
-  {
-    Eigen::Vector3f p = mesh.mPos.col(i);
-    mesh_data.push_back(p(0));
-    mesh_data.push_back(p(1));
-    mesh_data.push_back(p(2));
-
-    Eigen::Vector3f n = mesh.mNormal.col(i);
-    mesh_data.push_back(n(0));
-    mesh_data.push_back(n(1));
-    mesh_data.push_back(n(2));
-  }
-  */
-
-  /*
   // model transformation
   mat4 model;
   mesh.transform_to_center(model);
@@ -58,16 +39,17 @@ int main(int argc, char** args)
   Framebuffer fbo(GRID_RES, GRID_RES);
 
   // upload data
-  gp.upload_data(mesh_data, 6);
+  gp.upload_data(mesh_data, 3);
   gp.define_attribute("pos", 3, 0);
-  gp.define_attribute("normal", 3, 3);
 
   // compute scene bounding box
   vec3 bb_min(FLT_MAX,FLT_MAX,FLT_MAX), bb_max(-FLT_MAX,-FLT_MAX,-FLT_MAX);
-  for(int i = 0; i < n_vert; ++i)
+  for(int t = 0; t < mesh.pos.size(); t += 3)
   {
-    Eigen::Vector3f p_ = mesh.mPos.col(i);
-    vec4 p = model * vec4(p_(0), p_(1), p_(2), 1.0f);
+    vec4 p = model * vec4(mesh.pos[t+0],
+                          mesh.pos[t+1],
+                          mesh.pos[t+2],
+                          1.0f);
 
     for(int j = 0; j < 3; ++j)
     {
@@ -113,10 +95,7 @@ int main(int argc, char** args)
   eye(0) = cubic_bb_min(0) + half_l;
   eye(1) = cubic_bb_min(1) + half_l;
   eye(2) = cubic_bb_min(2) - 1.0f;
-
-  mat4 view = mat4::view(eye, eye + vec3(0.0f, 0.0f, +1.0f),
-                          vec3(0.0f, 1.0f, 0.0f));
-
+  mat4 view = mat4::view(eye, eye + vec3(0.0f, 0.0f, +1.0f), vec3(0.0f, 1.0f, 0.0f));
 
   fbo.clearDepthBuffer();
   fbo.clearColorBuffer();
@@ -133,5 +112,4 @@ int main(int argc, char** args)
   // ---------------------------------
   stbi_write_png("../out.png", fbo.width(), fbo.height(),
                   4, (const void*)fbo.colorBuffer(), sizeof(RGBA8)*fbo.width());
-  */
 }

@@ -18,10 +18,8 @@ public:
   rgba launch(const float* vertex_in, const float* dVdx, int n) override
   {
     vec3 pos( get_attribute("pos", vertex_in) );
-
     OctreeBuilderShader::tree.add_point(pos);
-
-    return rgba(pos(0), pos(1), pos(2), 1.0f);
+    return rgba(0.0f, 0.0f, 1.0f, 1.0f);
   }
 };
 

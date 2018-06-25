@@ -26,9 +26,10 @@ public:
   Eigen::MatrixXf mPos, mNormal, mUV, mAmb, mDiff, mSpec, mShininess;
   std::vector<Triangle> tris;
 
+  int n_tris;
   std::vector<float> pos, uv;
 
-  Mesh() {}
+  Mesh() : n_tris(0) {}
   Mesh(const std::string& path)
   {
     load_file(path);
