@@ -109,7 +109,7 @@ int main(int argc, char** args)
   gp.upload_uniform("model", model.data(), 16);
   gp.upload_uniform("proj", proj.data(), 16);
 
-  gp.render(octreeTarget);
+  gp.render(octreeTarget, false);
 
   // ---------------------------------
   // -------- RENDER PREVIEW ---------
@@ -138,10 +138,10 @@ int main(int argc, char** args)
   Framebuffer renderTarget(640, 480);
   viewport = mat4::viewport(renderTarget.width(), renderTarget.height());
 
-  eye = vec3(0.0f, 0.0f, -3.0f);
+  eye = vec3(0.0f, 0.0f, +2.0f);
   vec3 look_at(0.0f, 0.0f, 0.0f);
   vec3 up(0.0f, 1.0f, 0.0f);
-  view = mat4::view(eye, vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+  view = mat4::view(eye, look_at, up);
 
   // TODO: this can be computed from view but I'm too lazy
   vec3 w = (eye-look_at).unit();
@@ -160,7 +160,7 @@ int main(int argc, char** args)
   // clear and render
   renderTarget.clearDepthBuffer();
   renderTarget.clearColorBuffer();
-  renderer.render(renderTarget, false);
+  renderer.render(renderTarget);
 
   // ---------------------------------
   // -------- OUTPUT TO FILE ---------
