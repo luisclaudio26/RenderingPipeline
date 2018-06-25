@@ -17,6 +17,7 @@ private:
 public:
   vec2();
   vec2(float x, float y);
+  vec2(const float* e);
 
   float operator()(int i) const;
   float& operator()(int i);

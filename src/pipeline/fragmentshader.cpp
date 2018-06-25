@@ -20,8 +20,10 @@ rgba FragmentShader::launch(const float* vertex_in, const float* dVdx, int n)
   const float *texcoord = &vertex_in[4 + tex_id.stride];
   */
 
+  /*
   const float* texcoord = get_attribute("texcoord", vertex_in);
   int tex = (int)(get_uniform("tex")[0]);
+  */
 
   // TEXTURE SAMPLING
   // [ ] receive a texture unit ID as uniform
@@ -30,7 +32,7 @@ rgba FragmentShader::launch(const float* vertex_in, const float* dVdx, int n)
   //rgba tex_sample = (*tex_units)[0].sampleTrilinear(texcoord[0], texcoord[1], dVdx[10], dVdx[11]);
   //rgba tex_sample = (*tex_units)[0].sampleBilinear(texcoord[0], texcoord[1]);
 
-  rgba color = (*tex_units)[tex].sampleNearestNeighbor(texcoord[0], texcoord[1]);
+  //rgba color = (*tex_units)[tex].sampleNearestNeighbor(texcoord[0], texcoord[1]);
 
   // phong shading
   /*
@@ -45,5 +47,5 @@ rgba FragmentShader::launch(const float* vertex_in, const float* dVdx, int n)
   out(3) = 1.0f;
   */
 
-  return color;
+  return rgba(0.0f, 1.0f, 0.0f, 1.0f);
 }

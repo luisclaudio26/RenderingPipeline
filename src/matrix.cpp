@@ -7,6 +7,7 @@
 //---------------------------------
 vec2::vec2()                  { e[0] = e[1] = 0.0f; }
 vec2::vec2(float x, float y)  { e[0] = x; e[1] = y;}
+vec2::vec2(const float* e) { this->e[0] = e[0]; this->e[1] = e[1]; }
 float vec2::operator()(int i) const { return e[i]; }
 float& vec2::operator()(int i) { return e[i]; }
 vec2 vec2::operator-(const vec2& rhs) const

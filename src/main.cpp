@@ -2,6 +2,8 @@
 #include <iostream>
 #include "../include/pipeline/pipeline.h"
 #include "../shaders/octreebuilder.h"
+#include "../shaders/raymarcher.h"
+#include "../shaders/passthrough.h"
 #include "../include/mesh.h"
 #include <cstdio>
 
@@ -29,14 +31,6 @@ int main(int argc, char** args)
   OctreeBuilderShader fshader;
   gp.set_fragment_shader(fshader);
   gp.set_vertex_shader(vshader);
-
-  // framebuffer object. this must be coherent
-  // with our voxel grid resolution; if we want
-  // a voxel grid with resolution 128x128x128,
-  // our framebuffer must be 128x128 (because
-  // each fragment will become a potential voxel
-  // element).
-  Framebuffer fbo(GRID_RES, GRID_RES);
 
   // upload data
   gp.upload_data(mesh_data, 3);
@@ -86,8 +80,16 @@ int main(int argc, char** args)
   // -------------------------------
   // -------- BUILD OCTREE ---------
   // -------------------------------
+  // framebuffer object. this must be coherent
+  // with our voxel grid resolution; if we want
+  // a voxel grid with resolution 128x128x128,
+  // our framebuffer must be 128x128 (because
+  // each fragment will become a potential voxel
+  // element).
+  Framebuffer octreeTarget(GRID_RES, GRID_RES);
+
   float half_l = l * 0.5f;
-  mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
+  mat4 viewport = mat4::viewport(octreeTarget.width(), octreeTarget.height());
   mat4 proj = mat4::orthogonal(-half_l, half_l, -half_l, half_l, 0.5f, l + 1.5f);
 
   //XY view
@@ -97,19 +99,57 @@ int main(int argc, char** args)
   eye(2) = cubic_bb_min(2) - 1.0f;
   mat4 view = mat4::view(eye, eye + vec3(0.0f, 0.0f, +1.0f), vec3(0.0f, 1.0f, 0.0f));
 
-  fbo.clearDepthBuffer();
-  fbo.clearColorBuffer();
+  octreeTarget.clearDepthBuffer();
+  octreeTarget.clearColorBuffer();
   gp.set_viewport(viewport);
 
   gp.upload_uniform("view", view.data(), 16);
   gp.upload_uniform("model", model.data(), 16);
   gp.upload_uniform("proj", proj.data(), 16);
 
-  gp.render(fbo);
+  gp.render(octreeTarget);
+
+  // ---------------------------------
+  // -------- RENDER PREVIEW ---------
+  // ---------------------------------
+  GraphicPipeline renderer;
+
+  std::vector<float> quad;
+  quad.push_back(-1.0f); quad.push_back(-1.0f);
+  quad.push_back(+1.0f); quad.push_back(-1.0f);
+  quad.push_back(+1.0f); quad.push_back(+1.0f);
+  quad.push_back(-1.0f); quad.push_back(-1.0f);
+  quad.push_back(+1.0f); quad.push_back(+1.0f);
+  quad.push_back(-1.0f); quad.push_back(+1.0f);
+  renderer.upload_data(quad, 2);
+  renderer.define_attribute("pos", 2, 0);
+
+  RayMarcherShader raymarch;
+  PassthroughShader passthrough;
+  renderer.set_vertex_shader(passthrough);
+  renderer.set_fragment_shader(raymarch);
+
+  Framebuffer renderTarget(640, 480);
+  viewport = mat4::viewport(renderTarget.width(), renderTarget.height());
+
+  eye = vec3(2.0f, 0.0f, -4.0f);
+
+  renderTarget.clearDepthBuffer();
+  renderTarget.clearColorBuffer();
+  renderer.set_viewport(viewport);
+  renderer.upload_uniform("eye", eye.data(), 3);
+
+  renderer.render(renderTarget);
 
   // ---------------------------------
   // -------- OUTPUT TO FILE ---------
   // ---------------------------------
-  stbi_write_png("../out.png", fbo.width(), fbo.height(),
-                  4, (const void*)fbo.colorBuffer(), sizeof(RGBA8)*fbo.width());
+  stbi_write_png("../octree.png", octreeTarget.width(), octreeTarget.height(),
+                  4, (const void*)octreeTarget.colorBuffer(),
+                  sizeof(RGBA8)*octreeTarget.width());
+
+
+  stbi_write_png("../preview.png", renderTarget.width(), renderTarget.height(),
+                  4, (const void*)renderTarget.colorBuffer(),
+                  sizeof(RGBA8)*renderTarget.width());
 }

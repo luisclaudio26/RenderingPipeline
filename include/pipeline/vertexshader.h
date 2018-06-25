@@ -9,7 +9,7 @@
 
 class VertexShader
 {
-private:
+protected:
   // QUESTION would index-based access be substantially
   // faster then name-based?
   inline const float* get_uniform(const std::string& name)
