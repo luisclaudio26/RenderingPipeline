@@ -1,6 +1,44 @@
 #include "octree.h"
 #include <cstdio>
 
+// -----------------------------
+// --------- INTERNAL ----------
+// -----------------------------
+static bool intersect_box(const vec3& o, const vec3& d,
+                          const vec3& min, const vec3& max,
+                          float& tmin, float& tmax) const
+{
+  #define EPS 0.00001f
+
+  //use tavianator's slab method: sucessively clip ray in each axis
+  tmin = -FLT_MAX; tmax = FLT_MAX;
+
+  for(int i = 0; i < 3; ++i)
+  {
+    //if r.d(i) == 0, ray is parallel to the current axis
+    if(d(i) == 0.0f ) continue;
+
+    float t1, t2, ro = o(i);
+
+    //this should avoid the cases where the ray intersects infinitely
+    //many points on one of the planes
+    if( min(i) == o(i) || max(i) == o(i)) ro += EPS;
+
+    t1 = (min(i) - ro) / d(i);
+    t2 = (max(i) - ro) / d(i);
+
+    tmin = std::fmax(tmin, std::fmin(t1, t2));
+    tmax = std::fmin(tmax, std::fmax(t1, t2));
+  }
+
+  //tmax = tmin is a hit right in the corner of the box,
+  //which we assume to not to be a hit! TODO: is this a problem?
+  return tmax >= tmin && tmax > 0.0f;
+}
+
+// ----------------------------------
+// --------- FROM OCTREE.H ----------
+// ----------------------------------
 Node::Node()
 {
   // we just need to guarantee that the pointers
@@ -23,6 +61,11 @@ void Octree::set_aabb(const vec3& min, const vec3& max)
   root.Internal.x = center(0);
   root.Internal.y = center(1);
   root.Internal.z = center(2);
+}
+
+bool Octree::closest_leaf(const vec3& o, const vec3& d) const
+{
+
 }
 
 bool Octree::is_inside(const vec3& p) const

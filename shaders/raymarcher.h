@@ -61,13 +61,11 @@ public:
     vec4 d_ = inv_view * vec4(vec3(pos(0)*TAN_THETA_2, pos(1)*TAN_THETA_2, -1.0f).unit(), 0.0f);
     vec3 o_ws(o_(0),o_(1),o_(2)), d_ws(d_(0),d_(1),d_(2));
 
-    float v = 0.0f;
+    // TODO: this should return some attribute, or even the
+    // leaf itself so we can do something useful
+    tree.closest_leaf(o_ws, d_ws);
 
-    float tmin, tmax;
-    if( intersect_box(o_ws, d_ws, tree.min, tree.max, tmin, tmax) )
-      v = 1.0f;
-
-    return rgba(0.0f, v, 0.0f, 1.0f);
+    return rgba(0.1f, 0.1f, 0.1f, 1.0f);
   }
 };
 

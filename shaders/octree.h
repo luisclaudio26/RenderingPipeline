@@ -60,6 +60,7 @@ struct Octree
   // assumes MIN and MAX are consistently defined
   void add_point(const vec3& p);
   bool is_inside(const vec3& p) const;
+  bool closest_leaf(const vec3& o, const vec3& d) const;
 };
 
 #endif
