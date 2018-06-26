@@ -1,12 +1,13 @@
 #include "octree.h"
 #include <cstdio>
+#include <algorithm>
 
 // -----------------------------
 // --------- INTERNAL ----------
 // -----------------------------
 static bool intersect_box(const vec3& o, const vec3& d,
                           const vec3& min, const vec3& max,
-                          float& tmin, float& tmax) const
+                          float& tmin, float& tmax)
 {
   #define EPS 0.00001f
 
@@ -65,7 +66,37 @@ void Octree::set_aabb(const vec3& min, const vec3& max)
 
 bool Octree::closest_leaf(const vec3& o, const vec3& d) const
 {
+  vec3 bb_min = this->min, bb_max = this->max;
+  float tmin, tmax;
+  const Node* node = &root;
 
+  // bail out if no intersection
+  if( !intersect_box(o, d, bb_min, bb_max, tmin, tmax) )
+    return false;
+
+  // if we intersect the box, compute
+  // the (possibly) inner intersections
+  const float sx = node->Internal.x, sy = node->Internal.y, sz = node->Internal.z;
+  float tx = (sx - o(0)) / d(0);
+  float ty = (sy - o(1)) / d(1);
+  float tz = (sz - o(2)) / d(2);
+
+  // order the inner intersections so we know
+  // in which order we should traverse
+  float t[] = {tx, ty, tz};
+  std::sort(std::begin(t), std::end(t));
+
+  // loop intersections in order, discarding
+  // points when they're before tmin or after
+  // tmax, computing the mid-points
+
+  // for each mid-point, compute the octant
+  // if falls into
+
+  // descend to the closest octant
+
+  // repeat until we reach a leaf (or the node
+  // we're trying to descend doesn't exist)
 }
 
 bool Octree::is_inside(const vec3& p) const

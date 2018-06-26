@@ -63,6 +63,10 @@ public:
 
     // TODO: this should return some attribute, or even the
     // leaf itself so we can do something useful
+    // Knowing whether we intersect a leaf on the voxel tree
+    // or not should be enough to compute visibilities and thus,
+    // ambient occlusion.
+    // As for actual shading I don't know
     tree.closest_leaf(o_ws, d_ws);
 
     return rgba(0.1f, 0.1f, 0.1f, 1.0f);
