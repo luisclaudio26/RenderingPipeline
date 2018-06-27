@@ -11,7 +11,17 @@
 #include <nanogui/colorpicker.h>
 #include <nanogui/combobox.h>
 
-const int GRID_RES = 128;
+static void print_node(const Node* n)
+{
+  if(!n) return;
+  printf("[%f %f %f | %f %f %f]\n", n->Internal.min_x, n->Internal.min_y, n->Internal.min_z,
+                                    n->Internal.max_x, n->Internal.max_y, n->Internal.max_z);
+  for(int i = 0; i < 8; ++i)
+    print_node(n->Internal.children[i]);
+}
+
+// ------------------------------
+const int GRID_RES = 32;
 
 void Engine::draw(NVGcontext *ctx)
 {
@@ -118,6 +128,9 @@ void Engine::compute_octree()
   gp.upload_uniform("proj", proj.data(), 16);
 
   gp.render(octreeTarget, false);
+
+  // -------
+  print_node(&OctreeBuilderShader::tree.root);
 }
 
 void Engine::drawContents()

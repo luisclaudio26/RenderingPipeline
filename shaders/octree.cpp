@@ -253,9 +253,6 @@ void Octree::add_point(const vec3& p)
     // if this node hasn't been created yet, do it
     if( !(*next) )
     {
-      static int n_leaves = 0;
-      printf("New leave created (total %d)\n", ++n_leaves);
-
       *next = new Node;
 
       // offset to the center of the next octant.
@@ -267,17 +264,18 @@ void Octree::add_point(const vec3& p)
       // in a given axis), we ADD the shift; otherwise
       // we subtract.
       float shift = l/4;
-      (*next)->Internal.x = n->Internal.x + (address && 0b100 ? shift : -shift);
-      (*next)->Internal.y = n->Internal.y + (address && 0b010 ? shift : -shift);
-      (*next)->Internal.z = n->Internal.z + (address && 0b001 ? shift : -shift);
+      (*next)->Internal.x = n->Internal.x + (address & 0b100 ? shift : -shift);
+      (*next)->Internal.y = n->Internal.y + (address & 0b010 ? shift : -shift);
+      (*next)->Internal.z = n->Internal.z + (address & 0b001 ? shift : -shift);
 
       // compute bounding box for the new node.
-      (*next)->Internal.min_x = address && 0b100 ? n->Internal.x : n->Internal.min_x;
-      (*next)->Internal.min_y = address && 0b010 ? n->Internal.y : n->Internal.min_y;
-      (*next)->Internal.min_z = address && 0b001 ? n->Internal.z : n->Internal.min_z;
-      (*next)->Internal.max_x = ~address && 0b100 ? n->Internal.x : n->Internal.max_x;
-      (*next)->Internal.max_y = ~address && 0b010 ? n->Internal.y : n->Internal.max_y;
-      (*next)->Internal.max_z = ~address && 0b001 ? n->Internal.z : n->Internal.max_z;
+      (*next)->Internal.min_x = address & 0b100 ? n->Internal.x : n->Internal.min_x;
+      (*next)->Internal.min_y = address & 0b010 ? n->Internal.y : n->Internal.min_y;
+      (*next)->Internal.min_z = address & 0b001 ? n->Internal.z : n->Internal.min_z;
+
+      (*next)->Internal.max_x = ~address & 0b100 ? n->Internal.x : n->Internal.max_x;
+      (*next)->Internal.max_y = ~address & 0b010 ? n->Internal.y : n->Internal.max_y;
+      (*next)->Internal.max_z = ~address & 0b001 ? n->Internal.z : n->Internal.max_z;
     }
 
     // update offsets so they will be correct in the
