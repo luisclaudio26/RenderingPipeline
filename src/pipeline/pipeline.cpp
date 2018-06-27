@@ -128,7 +128,7 @@ void GraphicPipeline::set_viewport(const mat4& viewport)
 }
 
 void GraphicPipeline::render(Framebuffer& render_target, bool zbuffer,
-                              bool cull_back, bool fill)
+                              bool culling, bool cull_back, bool fill)
 {
   // reset vbuffer state variables, so loops controlled
   // by vbuffer_sz will be correct!
@@ -146,7 +146,7 @@ void GraphicPipeline::render(Framebuffer& render_target, bool zbuffer,
   vertex_processing();
   vbuffer_sz = primitive_clipping();
   perspective_division();
-  vbuffer_sz = primitive_culling(cull_back);
+  if(culling) vbuffer_sz = primitive_culling(cull_back);
   rasterization(render_target, zbuffer, fill);
 }
 

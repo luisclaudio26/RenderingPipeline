@@ -12,7 +12,7 @@
 // make any distinction here. in the end, this is just a
 // basic octree, far from the sparse voxel tree devised in
 // the article.
-const int MAX_DEPTH = 5;
+const int MAX_DEPTH = 7;
 
 union Node
 {

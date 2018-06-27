@@ -146,7 +146,9 @@ public:
   // render sends them through the pipeline and
   // stores the final result in the target Framebuffer
   void render(Framebuffer& target, bool zbuffer = true,
-              bool cull_back = true, bool fill = true);
+                                    bool culling = true,
+                                    bool cull_back = true,
+                                    bool fill = true);
 };
 
 #endif

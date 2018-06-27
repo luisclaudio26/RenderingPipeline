@@ -120,7 +120,7 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
     int depth = e.depth;
 
     // bail out if node is NAN. there's no leaf down here
-    if(!node) break;
+    if(!node) continue;
 
     // this is the first leaf intersected by the ray!
     if(depth == MAX_DEPTH) return tmin;
@@ -263,10 +263,12 @@ void Octree::add_point(const vec3& p)
       // have a 1 bit in a given position (positive
       // in a given axis), we ADD the shift; otherwise
       // we subtract.
+      /*
       float shift = l/4;
       (*next)->Internal.x = n->Internal.x + (address & 0b100 ? shift : -shift);
       (*next)->Internal.y = n->Internal.y + (address & 0b010 ? shift : -shift);
       (*next)->Internal.z = n->Internal.z + (address & 0b001 ? shift : -shift);
+      */
 
       // compute bounding box for the new node.
       (*next)->Internal.min_x = address & 0b100 ? n->Internal.x : n->Internal.min_x;
@@ -276,6 +278,11 @@ void Octree::add_point(const vec3& p)
       (*next)->Internal.max_x = ~address & 0b100 ? n->Internal.x : n->Internal.max_x;
       (*next)->Internal.max_y = ~address & 0b010 ? n->Internal.y : n->Internal.max_y;
       (*next)->Internal.max_z = ~address & 0b001 ? n->Internal.z : n->Internal.max_z;
+
+      // compute splitting point (midpoint)
+      (*next)->Internal.x = ( (*next)->Internal.min_x + (*next)->Internal.max_x ) * 0.5f;
+      (*next)->Internal.y = ( (*next)->Internal.min_y + (*next)->Internal.max_y ) * 0.5f;
+      (*next)->Internal.z = ( (*next)->Internal.min_z + (*next)->Internal.max_z ) * 0.5f;
     }
 
     // update offsets so they will be correct in the
@@ -287,7 +294,9 @@ void Octree::add_point(const vec3& p)
   }
 
   // the last level is a leaf
+  /*
   n->Leaf.x = p(0);
   n->Leaf.y = p(1);
   n->Leaf.z = p(2);
+  */
 }

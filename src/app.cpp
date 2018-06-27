@@ -11,6 +11,8 @@
 #include <nanogui/colorpicker.h>
 #include <nanogui/combobox.h>
 
+#include "../3rdparty/stb_image_write.h"
+
 static void print_node(const Node* n)
 {
   if(!n) return;
@@ -21,7 +23,7 @@ static void print_node(const Node* n)
 }
 
 // ------------------------------
-const int GRID_RES = 32;
+const int GRID_RES = 128;
 
 void Engine::draw(NVGcontext *ctx)
 {
@@ -93,7 +95,11 @@ void Engine::compute_octree()
   gp.upload_uniform("model", model.data(), 16);
   gp.upload_uniform("proj", proj.data(), 16);
 
-  gp.render(octreeTarget, false);
+  gp.render(octreeTarget, false, false);
+
+  stbi_write_png("../XY.png", octreeTarget.width(), octreeTarget.height(),
+                  4, (const void*)octreeTarget.colorBuffer(),
+                  sizeof(RGBA8)*octreeTarget.width());
 
   //XZ view
   eye = cubic_bb_min;
@@ -110,7 +116,11 @@ void Engine::compute_octree()
   gp.upload_uniform("model", model.data(), 16);
   gp.upload_uniform("proj", proj.data(), 16);
 
-  gp.render(octreeTarget, false);
+  gp.render(octreeTarget, false, false);
+
+  stbi_write_png("../XZ.png", octreeTarget.width(), octreeTarget.height(),
+                  4, (const void*)octreeTarget.colorBuffer(),
+                  sizeof(RGBA8)*octreeTarget.width());
 
   //YZ view
   eye = cubic_bb_min;
@@ -127,10 +137,14 @@ void Engine::compute_octree()
   gp.upload_uniform("model", model.data(), 16);
   gp.upload_uniform("proj", proj.data(), 16);
 
-  gp.render(octreeTarget, false);
+  gp.render(octreeTarget, false, false);
+
+  stbi_write_png("../YZ.png", octreeTarget.width(), octreeTarget.height(),
+                  4, (const void*)octreeTarget.colorBuffer(),
+                  sizeof(RGBA8)*octreeTarget.width());
 
   // -------
-  print_node(&OctreeBuilderShader::tree.root);
+  //print_node(&OctreeBuilderShader::tree.root);
 }
 
 void Engine::drawContents()

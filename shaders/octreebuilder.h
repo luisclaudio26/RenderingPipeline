@@ -16,7 +16,9 @@ public:
   {
     vec3 pos( get_attribute("pos", vertex_in) );
     OctreeBuilderShader::tree.add_point(pos);
-    return rgba(0.0f, 0.0f, 1.0f, 1.0f);
+
+    vec3 c = (pos + vec3(1.0f, 1.0f, 1.0f)) * 0.5f;
+    return rgba(c, 1.0f);
   }
 
   static Octree tree;
