@@ -1,6 +1,7 @@
 #include "octree.h"
 #include <cstdio>
 #include <algorithm>
+#include <stack>
 
 // -----------------------------
 // --------- INTERNAL ----------
@@ -86,6 +87,17 @@ void Octree::set_aabb(const vec3& min, const vec3& max)
 
 float Octree::closest_leaf(const vec3& o, const vec3& d) const
 {
+  struct TraversalElem
+  {
+    const Node* n;
+    float tmin, tmax;
+    int depth;
+
+    TraversalElem(const Node* n, float tmin, float tmax, int depth)
+      : n(n), tmin(tmin), tmax(tmax), depth(depth) { }
+  };
+
+  // --------------------
   vec3 bb_min = vec3(root.Internal.min_x,
                       root.Internal.min_y,
                       root.Internal.min_z);
@@ -93,65 +105,98 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
                       root.Internal.max_y,
                       root.Internal.max_z);
 
-  float tmin, tmax;
-  const Node* node = &root;
-
   // bail out if no intersection with the outter bounding box
-  if( !intersect_box(o, d, bb_min, bb_max, tmin, tmax) ) return NAN;
+  float outter_tmin, outter_tmax;
+  if( !intersect_box(o, d, bb_min, bb_max, outter_tmin, outter_tmax) ) return NAN;
 
-  // if we intersect the box, compute
-  // the (possibly) inner intersections
-  const float sx = node->Internal.x, sy = node->Internal.y, sz = node->Internal.z;
-  float tx = (sx - o(0)) / d(0);
-  float ty = (sy - o(1)) / d(1);
-  float tz = (sz - o(2)) / d(2);
+  std::stack<TraversalElem> stack;
+  stack.push( TraversalElem(&root, outter_tmin, outter_tmax, 1) );
 
-  // order intersections so we know
-  // in which order we should traverse.
-  // we don't include tmin here because this
-  // is the intersection we'll be starting with.
-  float t[] = {tx, ty, tz, tmax};
-  std::sort(std::begin(t), std::end(t));
-
-  // loop intersections in order, discarding
-  // points when they're before tmin or after
-  // tmax, computing the mid-points
-  // break when tlast = tmax
-  float mid[4]; float tlast = tmin;
-  int i = 0, mid_ind = 0;
-  while( tlast != tmax )
+  while( !stack.empty() )
   {
-    float cur = t[i];
+    TraversalElem e = stack.top(); stack.pop();
+    float tmin = e.tmin, tmax = e.tmax;
+    const Node* node = e.n;
+    int depth = e.depth;
 
-    // if our current intersection is BEHIND
-    // tlast, just skip this and get the next
-    if( cur < tlast )
+    // bail out if node is NAN. there's no leaf down here
+    if(!node) break;
+
+    // this is the first leaf intersected by the ray!
+    if(depth == MAX_DEPTH) return tmin;
+
+    // if we intersect the box, compute
+    // the (possibly) inner intersections
+    // TODO: Take care of INFs!
+    const float sx = node->Internal.x, sy = node->Internal.y, sz = node->Internal.z;
+    float tx = (sx - o(0)) / d(0);
+    float ty = (sy - o(1)) / d(1);
+    float tz = (sz - o(2)) / d(2);
+
+    // order intersections in decreasing order because
+    // we start from the furthest box to the closest one,
+    // which is the order we want to push them to the stack.
+    // we don't include tmax here because this
+    // is the intersection we'll be starting with.
+    float t[] = {tx, ty, tz, tmin};
+    std::sort(std::begin(t), std::end(t), [](float a, float b) {
+                                              return a > b;
+                                            });
+
+    // loop intersections in order, discarding
+    // points when they're before tmin or after
+    // tmax, computing the mid-points
+    // break when tlast = tmin
+    float mid[4]; float tlast = tmax;
+    int i = 0, mid_ind = 0;
+    while( tlast != tmin )
     {
+      float cur = t[i];
+
+      // if our current intersection is BEHIND
+      // tlast, just skip this and get the next
+      if( cur >= tlast )
+      {
+        i++;
+        continue;
+      }
+
+      // intersection is correct; compute mid point
+      float mid_point = (tlast + cur) * 0.5f;
+      //mid[mid_ind] = (tlast + cur) * 0.5f;
+      //mid_ind++;
+
+      // compute in which octant the mid point falls
+      // and push to the stack
+      int oct = node->which_child(o + d*mid_point);
+      const Node* next = node->Internal.children[oct];
+
+      TraversalElem next_e(next, cur, tlast, depth+1);
+      /*
+      next_e.depth = depth + 1;
+      next_e.node = next;
+      next_e.tmin = cur;
+      next_e.tmax = tlast; */
+      stack.push(next_e);
+
+      // advance tlast to the next intersection
+      // so we can get the next octant being intersected
+      tlast = cur;
       i++;
-      continue;
     }
 
-    // intersection is correct; compute mid point
-    mid[mid_ind] = (tlast + cur) * 0.5f;
-    mid_ind++;
+    // for each mid-point, compute the octant if falls into
 
-    // advance tlast to the next intersection
-    // so we can get the next octant being intersected
-    tlast = cur;
-    i++;
+    // descend to the closest octant
+    /*
+    int oct = node->which_child(o + d*mid[0]);
+    node = node->Internal.children[oct];
+    depth = depth + 1;
+    */
   }
 
-  // for each mid-point, compute the octant
-  // if falls into
-
-  // descend to the closest octant
-  int oct = node->which_child(o + d*mid[0]);
-  node = node->Internal.children[oct];
-
-  // repeat until we reach a leaf (or the node
-  // we're trying to descend doesn't exist)
-
-  return mid[0];
+  // if we reached this point, no actual leaf was found
+  return NAN;
 }
 
 bool Octree::is_inside(const vec3& p) const
