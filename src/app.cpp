@@ -18,6 +18,74 @@ void Engine::draw(NVGcontext *ctx)
   Screen::draw(ctx);
 }
 
+void Engine::compute_octree()
+{
+  // compute scene bounding box
+  vec3 bb_min(FLT_MAX,FLT_MAX,FLT_MAX), bb_max(-FLT_MAX,-FLT_MAX,-FLT_MAX);
+  for(int t = 0; t < mesh.pos.size(); t += 3)
+  {
+    vec4 p = model * vec4(mesh.pos[t+0],
+                          mesh.pos[t+1],
+                          mesh.pos[t+2],
+                          1.0f);
+
+    for(int j = 0; j < 3; ++j)
+    {
+      bb_min(j) = std::fmin(bb_min(j), p(j));
+      bb_max(j) = std::fmax(bb_max(j), p(j));
+    }
+  }
+
+  printf("Bounding box: \n");
+  printf("\t(%f, %f, %f) - (%f, %f, %f)\n", bb_min(0), bb_min(1), bb_min(2),
+                                            bb_max(0), bb_max(1), bb_max(2));
+
+  // compute minimal CUBIC bounding box which will be used
+  // to define the rasterization limits
+  vec3 diff = bb_max - bb_min;
+  int greatest_axis = 0;
+
+  for(int i = 0; i < 3; ++i)
+    if(diff(i) > diff(greatest_axis))
+      greatest_axis = i;
+
+  // side of the cubic bounding box
+  float l = diff(greatest_axis);
+
+  vec3 cubic_bb_min = bb_min;
+  vec3 cubic_bb_max = bb_min + vec3(l,l,l);
+
+  OctreeBuilderShader::tree.set_aabb(cubic_bb_min, cubic_bb_max);
+
+  printf("Cubic bounding box: \n");
+  printf("\t(%f, %f, %f) - (%f, %f, %f)\n", bb_min(0), bb_min(1), bb_min(2),
+                                            cubic_bb_max(0),
+                                            cubic_bb_max(1),
+                                            cubic_bb_max(2));
+
+  // setup common matrices
+  float half_l = l * 0.5f;
+  mat4 viewport = mat4::viewport(octreeTarget.width(), octreeTarget.height());
+  mat4 proj = mat4::orthogonal(-half_l, half_l, -half_l, half_l, 0.0f, l + 0.5f);
+
+  //XY view
+  vec3 eye = cubic_bb_min;
+  eye(0) = cubic_bb_min(0) + half_l;
+  eye(1) = cubic_bb_min(1) + half_l;
+  eye(2) = cubic_bb_min(2);
+  mat4 view = mat4::view(eye, eye + vec3(0.0f, 0.0f, +1.0f), vec3(0.0f, 1.0f, 0.0f));
+
+  octreeTarget.clearDepthBuffer();
+  octreeTarget.clearColorBuffer();
+  gp.set_viewport(viewport);
+
+  gp.upload_uniform("view", view.data(), 16);
+  gp.upload_uniform("model", model.data(), 16);
+  gp.upload_uniform("proj", proj.data(), 16);
+
+  gp.render(octreeTarget, false);
+}
+
 void Engine::drawContents()
 {
   //-------------------------------------
@@ -160,7 +228,6 @@ bool Engine::resizeEvent(const Eigen::Vector2i &size)
 Engine::Engine(const char* path)
   : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test"),
     buffer_width(DEFAULT_WIDTH), buffer_height(DEFAULT_HEIGHT),
-    //raymarch(RayMarcherShader(OctreeBuilderShader::tree))
     raymarch(OctreeBuilderShader::tree)
 {
   // --------------------------------
@@ -295,6 +362,11 @@ Engine::Engine(const char* path)
   shader.bind();
   shader.uploadAttrib<Eigen::MatrixXf>("quad_pos", quad_gl);
   shader.uploadAttrib<Eigen::MatrixXf>("quad_uv", texcoord);
+
+  // ------------------------------------
+  // ---------- Compute octree ----------
+  // ------------------------------------
+  compute_octree();
 
   performLayout();
 }

@@ -29,6 +29,8 @@ private:
   RayMarcherShader raymarch;
   Framebuffer renderTarget;
 
+  void compute_octree();
+
   // scene info
   Mesh mesh; mat4 model;
 
