@@ -64,7 +64,7 @@ void Octree::set_aabb(const vec3& min, const vec3& max)
   root.Internal.z = center(2);
 }
 
-bool Octree::closest_leaf(const vec3& o, const vec3& d) const
+float Octree::closest_leaf(const vec3& o, const vec3& d) const
 {
   vec3 bb_min = this->min, bb_max = this->max;
   float tmin, tmax;
@@ -72,7 +72,7 @@ bool Octree::closest_leaf(const vec3& o, const vec3& d) const
 
   // bail out if no intersection
   if( !intersect_box(o, d, bb_min, bb_max, tmin, tmax) )
-    return false;
+    return NAN;
 
   // if we intersect the box, compute
   // the (possibly) inner intersections
@@ -81,14 +81,47 @@ bool Octree::closest_leaf(const vec3& o, const vec3& d) const
   float ty = (sy - o(1)) / d(1);
   float tz = (sz - o(2)) / d(2);
 
-  // order the inner intersections so we know
-  // in which order we should traverse
-  float t[] = {tx, ty, tz};
+  // order intersections so we know
+  // in which order we should traverse.
+  // we don't include tmin here because this
+  // is the intersection we'll be starting with.
+  float t[] = {tx, ty, tz, tmax};
   std::sort(std::begin(t), std::end(t));
 
   // loop intersections in order, discarding
   // points when they're before tmin or after
   // tmax, computing the mid-points
+  // break when tlast = tmax
+  float mid[4]; float tlast = tmin;
+
+  int i = 0, mid_ind = 0;
+  while( tlast != tmax )
+  {
+    float cur = t[i];
+
+    // if our current intersection is BEHIND
+    // tlast, just skip this and get the next
+    if( cur < tlast )
+    {
+      i++;
+      continue;
+    }
+
+    // intersection is correct; compute mid point
+    mid[mid_ind] = (tlast + cur) * 0.5f;
+    mid_ind++;
+
+    // advance tlast to the next intersection
+    // so we can get the next octant being intersected
+    tlast = cur;
+    i++;
+  }
+
+  /*
+  tm tx ty tz tM
+
+  tx tm tz tM ty
+  */
 
   // for each mid-point, compute the octant
   // if falls into
@@ -97,6 +130,8 @@ bool Octree::closest_leaf(const vec3& o, const vec3& d) const
 
   // repeat until we reach a leaf (or the node
   // we're trying to descend doesn't exist)
+
+  return mid[0];
 }
 
 bool Octree::is_inside(const vec3& p) const

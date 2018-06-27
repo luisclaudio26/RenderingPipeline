@@ -54,7 +54,6 @@ public:
   {
     vec2 pos( get_attribute("pos", vertex_in) );
     vec3 eye( get_uniform("eye") );
-    vec3 look_dir( get_uniform("look_dir") );
     mat4 inv_view( get_uniform("inv_view") );
 
     vec4 o_ = inv_view * vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -67,9 +66,12 @@ public:
     // or not should be enough to compute visibilities and thus,
     // ambient occlusion.
     // As for actual shading I don't know
-    tree.closest_leaf(o_ws, d_ws);
+    float v = tree.closest_leaf(o_ws, d_ws);
 
-    return rgba(0.1f, 0.1f, 0.1f, 1.0f);
+    if(v != v)
+      return rgba(0.1f, 0.1f, 0.1f, 1.0f);
+    else
+      return rgba(v*0.5f, v*0.5f, v*0.5f, 1.0f);
   }
 };
 

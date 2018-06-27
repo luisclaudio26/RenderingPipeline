@@ -138,7 +138,7 @@ int main(int argc, char** args)
   Framebuffer renderTarget(640, 480);
   viewport = mat4::viewport(renderTarget.width(), renderTarget.height());
 
-  eye = vec3(0.0f, 0.0f, +2.0f);
+  eye = vec3(0.2f, 0.0f, +2.0f);
   vec3 look_at(0.0f, 0.0f, 0.0f);
   vec3 up(0.0f, 1.0f, 0.0f);
   view = mat4::view(eye, look_at, up);
