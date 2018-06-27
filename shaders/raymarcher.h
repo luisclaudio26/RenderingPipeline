@@ -71,7 +71,7 @@ public:
     if(v != v)
       return rgba(0.1f, 0.1f, 0.1f, 1.0f);
     else
-      return rgba(v*0.5f, v*0.5f, v*0.5f, 1.0f);
+      return rgba(0.0f, 1.0f, 0.0f, 1.0f);
   }
 };
 

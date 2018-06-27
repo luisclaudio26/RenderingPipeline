@@ -8,6 +8,8 @@
 #include "param.h"
 
 #include "../shaders/octreebuilder.h"
+#include "../shaders/passthrough.h"
+#include "../shaders/raymarcher.h"
 
 const int DEFAULT_WIDTH = 960;
 const int DEFAULT_HEIGHT = 540;
@@ -15,24 +17,25 @@ const int DEFAULT_HEIGHT = 540;
 class Engine : public nanogui::Screen
 {
 private:
-  // rendering pipeline
-  VertexShader vshader;
-  OctreeBuilderShader fshader;
+  // octree build up
+  VertexShader standard;
+  OctreeBuilderShader voxelizer;
   GraphicPipeline gp;
-  Framebuffer fbo;
+  Framebuffer octreeTarget;
+
+  // voxel rendering
+  GraphicPipeline renderer;
+  PassthroughShader passthrough;
+  RayMarcherShader raymarch;
+  Framebuffer renderTarget;
 
   // scene info
   Mesh mesh; mat4 model;
-  Texture checker;
 
   //display stuff
   nanogui::GLShader shader;
   GLuint color_gpu;
   int buffer_width, buffer_height;
-
-  nanogui::Label *framerate_open;
-  nanogui::Label *framerate_almost;
-  nanogui::Label *window_dimension;
 
   //comparison window
   SceneParameters param;

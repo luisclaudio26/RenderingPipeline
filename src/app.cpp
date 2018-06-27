@@ -11,6 +11,8 @@
 #include <nanogui/colorpicker.h>
 #include <nanogui/combobox.h>
 
+const int GRID_RES = 128;
+
 void Engine::draw(NVGcontext *ctx)
 {
   Screen::draw(ctx);
@@ -23,6 +25,7 @@ void Engine::drawContents()
   //-------------------------------------
   clock_t start = clock();
 
+  /*
   //proj and viewport could be precomputed!
   mat4 view = mat4::view(param.cam.eye, param.cam.eye + param.cam.look_dir, param.cam.up);
   mat4 proj = mat4::orthogonal(-3.0f, 3.0f, -3.0f, 3.0f, param.cam.near, param.cam.far);
@@ -46,6 +49,60 @@ void Engine::drawContents()
   gp.render(fbo, param.front_face == GL_CCW, param.draw_mode != GL_LINE);
 
   GLubyte *color_buffer = fbo.colorBuffer();
+  */
+
+  // ---------------------------------
+  // -------- RENDER PREVIEW ---------
+  // ---------------------------------
+  /*
+  GraphicPipeline renderer;
+
+  // a simple quad for simply being able to invoke a fragment
+  // shader for each pixel
+  std::vector<float> quad;
+  quad.push_back(-1.0f); quad.push_back(-1.0f);
+  quad.push_back(+1.0f); quad.push_back(-1.0f);
+  quad.push_back(+1.0f); quad.push_back(+1.0f);
+  quad.push_back(-1.0f); quad.push_back(-1.0f);
+  quad.push_back(+1.0f); quad.push_back(+1.0f);
+  quad.push_back(-1.0f); quad.push_back(+1.0f);
+  renderer.upload_data(quad, 2);
+  renderer.define_attribute("pos", 2, 0);
+
+  // shader setting
+  PassthroughShader passthrough;
+  RayMarcherShader raymarch(OctreeBuilderShader::tree);
+  renderer.set_vertex_shader(passthrough);
+  renderer.set_fragment_shader(raymarch);
+  */
+
+  // define viewport and uniforms
+  //Framebuffer renderTarget(buffer_width, buffer_height);
+  mat4 viewport = mat4::viewport(renderTarget.width(), renderTarget.height());
+
+  vec3 eye(0.5f, 0.8f, +1.5f);
+  vec3 look_at(0.0f, 0.0f, 0.0f);
+  vec3 up(0.0f, 1.0f, 0.0f);
+  mat4 view = mat4::view(eye, look_at, up);
+
+  // TODO: this can be computed from view but I'm too lazy
+  vec3 w = (eye-look_at).unit();
+  vec3 u = (up.cross(w)).unit();
+  vec3 v = w.cross(u);
+  mat4 inv_view( vec4(u(0), u(1), u(2), 0.0f),
+                  vec4(v(0), v(1), v(2), 0.0f),
+                  vec4(w(0), w(1), w(2), 0.0f),
+                  vec4(eye.dot(u), eye.dot(v), eye.dot(w), 1.0f));
+
+  renderer.set_viewport(viewport);
+  renderer.upload_uniform("eye", eye.data(), 3);
+  renderer.upload_uniform("view", view.data(), 16);
+  renderer.upload_uniform("inv_view", inv_view.data(), 16);
+
+  // clear and render
+  renderTarget.clearDepthBuffer();
+  renderTarget.clearColorBuffer();
+  renderer.render(renderTarget);
 
   //-------------------------------------------------------
   //---------------------- DISPLAY ------------------------
@@ -64,7 +121,7 @@ void Engine::drawContents()
                   buffer_height,
                   GL_RGBA,
                   GL_UNSIGNED_BYTE,
-                  color_buffer);
+                  renderTarget.colorBuffer());
 
   //WARNING: IF WE DON'T SET THIS IT WON'T WORK!
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -78,8 +135,8 @@ void Engine::drawContents()
   shader.drawArray(GL_TRIANGLES, 0, 6);
 
   //count time
-   clock_t elapsed = clock() - start;
-   printf("\rTime per frame: %fs", ((double)elapsed)/CLOCKS_PER_SEC);
+  clock_t elapsed = clock() - start;
+  printf("\rTime per frame: %fs", ((double)elapsed)/CLOCKS_PER_SEC);
 }
 
 bool Engine::resizeEvent(const Eigen::Vector2i &size)
@@ -97,12 +154,14 @@ bool Engine::resizeEvent(const Eigen::Vector2i &size)
                   buffer_height);
 
   //resize buffers
-  fbo.resizeBuffer(buffer_width, buffer_height);
+  renderTarget.resizeBuffer(buffer_width, buffer_height);
 }
 
 Engine::Engine(const char* path)
   : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test"),
-    buffer_width(DEFAULT_WIDTH), buffer_height(DEFAULT_HEIGHT)
+    buffer_width(DEFAULT_WIDTH), buffer_height(DEFAULT_HEIGHT),
+    //raymarch(RayMarcherShader(OctreeBuilderShader::tree))
+    raymarch(OctreeBuilderShader::tree)
 {
   // --------------------------------
   // --------- Scene setup ----------
@@ -127,53 +186,15 @@ Engine::Engine(const char* path)
   param.shading = 0;
 
   // Load model and unpack.
-  // The first version packs mesh data into
-  // Eigen matrices. Although this indeed
-  // makes thing easier, we prefer to make
-  // the code self-contained, so we unpack
-  // things into a plain std::vector.
-  // TODO: Load .obj files
+  // It's a bit dumb to copy each element in a for loop
+  // using push_back(), but this is just because our meshes
+  // have only position information (in the general case,
+  // at least texture coordinates would be present and we
+  // would need to store them inside mesh_data also)
   mesh.load_file( std::string(path) );
   std::vector<float> mesh_data;
-  int n_tris = mesh.mPos.cols(); //calling mPOs.cols() works?! LULZ?!?!?!?
-
-  for(int i = 0; i < n_tris; ++i)
-  {
-    Eigen::Vector3f p = mesh.mPos.col(i);
-    mesh_data.push_back(p(0));
-    mesh_data.push_back(p(1));
-    mesh_data.push_back(p(2));
-
-
-    Eigen::Vector3f n = mesh.mNormal.col(i);
-    mesh_data.push_back(n(0));
-    mesh_data.push_back(n(1));
-    mesh_data.push_back(n(2));
-
-    Eigen::Vector2f t = mesh.mUV.col(i);
-    mesh_data.push_back(t(0));
-    mesh_data.push_back(t(1));
-  }
-
+  for( auto p : mesh.pos ) mesh_data.push_back(p);
   mesh.transform_to_center(model);
-
-  // load textures
-  checker.load_from_file("../data/mandrill_256.jpg");
-  checker.compute_mips();
-
-  // ---------------------------------
-  // ---------- Set shaders ----------
-  // ---------------------------------
-  gp.set_fragment_shader(fshader);
-  gp.set_vertex_shader(vshader);
-
-  // ---------------------------------------------
-  // ---------- Upload data to pipeline ----------
-  // ---------------------------------------------
-  gp.upload_data(mesh_data, 8);
-  gp.define_attribute("pos", 3, 0);
-  gp.define_attribute("normal", 3, 3);
-  gp.define_attribute("texcoord", 2, 6);
 
   // ----------------------------------
   // ---------- Framebuffers ----------
@@ -189,11 +210,17 @@ Engine::Engine(const char* path)
                   buffer_width,
                   buffer_height);
 
-  fbo.resizeBuffer(buffer_width, buffer_height);
+  renderTarget.resizeBuffer(buffer_width, buffer_height);
+  octreeTarget.resizeBuffer(GRID_RES, GRID_RES);
 
   //--------------------------------------
   //----------- Shader options -----------
   //--------------------------------------
+  gp.set_fragment_shader(voxelizer);
+  gp.set_vertex_shader(standard);
+  renderer.set_fragment_shader(raymarch);
+  renderer.set_vertex_shader(passthrough);
+
   shader.init("passthrough",
 
               //Vertex shader
@@ -228,15 +255,32 @@ Engine::Engine(const char* path)
                 "color = texture(frame, uv_frag);\n"
               "}");
 
+  // ---------------------------------
+  // ---------- Upload data ----------
+  // ---------------------------------
+  gp.upload_data(mesh_data, 3);
+  gp.define_attribute("pos", 3, 0);
+
+  // a simple quad so we can invoke the fragment shader for each pixel
+  std::vector<float> quad;
+  quad.push_back(-1.0f); quad.push_back(-1.0f);
+  quad.push_back(+1.0f); quad.push_back(-1.0f);
+  quad.push_back(+1.0f); quad.push_back(+1.0f);
+  quad.push_back(-1.0f); quad.push_back(-1.0f);
+  quad.push_back(+1.0f); quad.push_back(+1.0f);
+  quad.push_back(-1.0f); quad.push_back(+1.0f);
+  renderer.upload_data(quad, 2);
+  renderer.define_attribute("pos", 2, 0);
+
   // upload triangles which we'll use to render the final
   // image and the corresponding texture coordinates
-  Eigen::MatrixXf quad(2, 6);
-  quad.col(0)<<-1.0, -1.0;
-  quad.col(1)<<+1.0, -1.0;
-  quad.col(2)<<+1.0, +1.0;
-  quad.col(3)<<-1.0, -1.0;
-  quad.col(4)<<+1.0, +1.0;
-  quad.col(5)<<-1.0, +1.0;
+  Eigen::MatrixXf quad_gl(2, 6);
+  quad_gl.col(0)<<-1.0, -1.0;
+  quad_gl.col(1)<<+1.0, -1.0;
+  quad_gl.col(2)<<+1.0, +1.0;
+  quad_gl.col(3)<<-1.0, -1.0;
+  quad_gl.col(4)<<+1.0, +1.0;
+  quad_gl.col(5)<<-1.0, +1.0;
 
   //for some reason, OpenGL inverts the v axis,
   //so we undo this here
@@ -249,7 +293,7 @@ Engine::Engine(const char* path)
   texcoord.col(5)<<0.0f, 0.0f;
 
   shader.bind();
-  shader.uploadAttrib<Eigen::MatrixXf>("quad_pos", quad);
+  shader.uploadAttrib<Eigen::MatrixXf>("quad_pos", quad_gl);
   shader.uploadAttrib<Eigen::MatrixXf>("quad_uv", texcoord);
 
   performLayout();

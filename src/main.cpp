@@ -7,13 +7,14 @@
 #include "../include/mesh.h"
 #include <cstdio>
 
+#include "../include/app.h"
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../3rdparty/stb_image_write.h"
 
-const int GRID_RES = 128;
-
 int main(int argc, char** args)
 {
+  /*
   // load geometry
   Mesh mesh; mesh.load_file(args[1]);
 
@@ -173,4 +174,16 @@ int main(int argc, char** args)
   stbi_write_png("../preview.png", renderTarget.width(), renderTarget.height(),
                   4, (const void*)renderTarget.colorBuffer(),
                   sizeof(RGBA8)*renderTarget.width());
+  */
+
+  nanogui::init();
+
+        /* scoped variables */ {
+            nanogui::ref<Engine> app = new Engine(args[1]);
+            app->drawAll();
+            app->setVisible(true);
+            nanogui::mainloop();
+        }
+
+  nanogui::shutdown();
 }
