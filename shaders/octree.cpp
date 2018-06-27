@@ -253,6 +253,9 @@ void Octree::add_point(const vec3& p)
     // if this node hasn't been created yet, do it
     if( !(*next) )
     {
+      static int n_leaves = 0;
+      printf("New leave created (total %d)\n", ++n_leaves);
+
       *next = new Node;
 
       // offset to the center of the next octant.

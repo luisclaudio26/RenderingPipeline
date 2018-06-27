@@ -84,6 +84,40 @@ void Engine::compute_octree()
   gp.upload_uniform("proj", proj.data(), 16);
 
   gp.render(octreeTarget, false);
+
+  //XZ view
+  eye = cubic_bb_min;
+  eye(0) = cubic_bb_min(0) + half_l;
+  eye(1) = cubic_bb_min(1);
+  eye(2) = cubic_bb_min(2) + half_l;
+  view = mat4::view(eye, eye + vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, +1.0f));
+
+  octreeTarget.clearDepthBuffer();
+  octreeTarget.clearColorBuffer();
+  gp.set_viewport(viewport);
+
+  gp.upload_uniform("view", view.data(), 16);
+  gp.upload_uniform("model", model.data(), 16);
+  gp.upload_uniform("proj", proj.data(), 16);
+
+  gp.render(octreeTarget, false);
+
+  //YZ view
+  eye = cubic_bb_min;
+  eye(0) = cubic_bb_min(0);
+  eye(1) = cubic_bb_min(1) + half_l;
+  eye(2) = cubic_bb_min(2) + half_l;
+  view = mat4::view(eye, eye + vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+
+  octreeTarget.clearDepthBuffer();
+  octreeTarget.clearColorBuffer();
+  gp.set_viewport(viewport);
+
+  gp.upload_uniform("view", view.data(), 16);
+  gp.upload_uniform("model", model.data(), 16);
+  gp.upload_uniform("proj", proj.data(), 16);
+
+  gp.render(octreeTarget, false);
 }
 
 void Engine::drawContents()
@@ -148,22 +182,24 @@ void Engine::drawContents()
   //Framebuffer renderTarget(buffer_width, buffer_height);
   mat4 viewport = mat4::viewport(renderTarget.width(), renderTarget.height());
 
-  vec3 eye(0.5f, 0.8f, +1.5f);
-  vec3 look_at(0.0f, 0.0f, 0.0f);
-  vec3 up(0.0f, 1.0f, 0.0f);
-  mat4 view = mat4::view(eye, look_at, up);
+  //vec3 eye(0.5f, 0.8f, +1.5f);
+  //vec3 look_at(0.0f, 0.0f, 0.0f);
+  //vec3 up(0.0f, 1.0f, 0.0f);
+  mat4 view = mat4::view(param.cam.eye,
+                          param.cam.eye + param.cam.look_dir,
+                          param.cam.up);
 
   // TODO: this can be computed from view but I'm too lazy
-  vec3 w = (eye-look_at).unit();
-  vec3 u = (up.cross(w)).unit();
+  vec3 w = param.cam.eye.unit();
+  vec3 u = (param.cam.up.cross(w)).unit();
   vec3 v = w.cross(u);
   mat4 inv_view( vec4(u(0), u(1), u(2), 0.0f),
                   vec4(v(0), v(1), v(2), 0.0f),
                   vec4(w(0), w(1), w(2), 0.0f),
-                  vec4(eye.dot(u), eye.dot(v), eye.dot(w), 1.0f));
+                  vec4(param.cam.eye.dot(u), param.cam.eye.dot(v), param.cam.eye.dot(w), 1.0f));
 
   renderer.set_viewport(viewport);
-  renderer.upload_uniform("eye", eye.data(), 3);
+  renderer.upload_uniform("eye", param.cam.eye.data(), 3);
   renderer.upload_uniform("view", view.data(), 16);
   renderer.upload_uniform("inv_view", inv_view.data(), 16);
 
@@ -205,6 +241,7 @@ void Engine::drawContents()
   //count time
   clock_t elapsed = clock() - start;
   printf("\rTime per frame: %fs", ((double)elapsed)/CLOCKS_PER_SEC);
+  fflush(stdout);
 }
 
 bool Engine::resizeEvent(const Eigen::Vector2i &size)
@@ -234,15 +271,15 @@ Engine::Engine(const char* path)
   // --------- Scene setup ----------
   // --------------------------------
   float angle = 0.0174533f;
-  param.cam.eye = vec3(0.0f, 0.0f, 0.0f);
+  param.cam.eye = vec3(0.0f, 0.0f, 2.0f);
   param.cam.up = vec3(0.0f, 1.0f, 0.0f);
   param.cam.cos_angle = (float)cos(angle);
   param.cam.sin_angle = (float)sin(angle);
   param.cam.look_dir = vec3(0.0f, 0.0f, -1.0f);
   param.cam.right = vec3(1.0f, 0.0f, 0.0f);
   param.cam.step = 0.1f;
-  param.cam.near = 1.0f;
-  param.cam.far = 10.0f;
+  param.cam.near = 0.5f;
+  param.cam.far = 5.0f;
   param.cam.FoVy = 45.0f;
   param.cam.FoVx = 45.0f;
   param.cam.lock_view = false;
@@ -376,112 +413,32 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   if (Screen::keyboardEvent(key, scancode, action, modifiers)) return true;
 
   //camera movement
-  if(key == GLFW_KEY_A && action == GLFW_REPEAT) {
-    param.cam.eye += (-param.cam.right) * param.cam.step;
-    if(param.cam.lock_view)
-    {
-      param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
-      param.cam.right = param.cam.look_dir.cross(param.cam.up);
-    }
-    return true;
-  }
-  if(key == GLFW_KEY_D && action == GLFW_REPEAT) {
-    param.cam.eye += param.cam.right * param.cam.step;
-    if(param.cam.lock_view)
-    {
-      param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
-      param.cam.right = param.cam.look_dir.cross(param.cam.up);
-    }
-    return true;
-  }
-  if( key == GLFW_KEY_W && action == GLFW_REPEAT ) {
-    param.cam.eye += param.cam.look_dir * param.cam.step;
-    //if(param.cam.param.cam.lock_view) param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
-    return true;
-  }
-  if( key == GLFW_KEY_S && action == GLFW_REPEAT ) {
-    param.cam.eye += param.cam.look_dir * (-param.cam.step);
-    //if(param.cam.param.cam.lock_view) param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
-    return true;
-  }
-  if( key == GLFW_KEY_R && action == GLFW_REPEAT ) {
-    param.cam.eye += param.cam.up * param.cam.step;
-    if(param.cam.lock_view)
-    {
-      param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
-      param.cam.up = param.cam.right.cross(param.cam.look_dir);
-    }
-
-    return true;
-  }
-  if( key == GLFW_KEY_F && action == GLFW_REPEAT ) {
-    param.cam.eye += (-param.cam.up) * param.cam.step;
-    if(param.cam.lock_view)
-    {
-      param.cam.look_dir = (vec3(0.0f, 0.0f, -5.5f) - param.cam.eye).unit();
-      param.cam.up = param.cam.right.cross(param.cam.look_dir);
-    }
+  if(key == GLFW_KEY_Q && action == GLFW_REPEAT)
+  {
+    param.cam.eye = vec3(0.0f, 0.0f, 3.0f);
+    param.cam.look_dir = vec3(0.0f, 0.0f, -1.0f);
+    param.cam.up = vec3(0.0f, 1.0f, 0.0f);
+    printf("XY view\n");
     return true;
   }
 
-  //TODO: we can precompute sin and cos values!
-  if( key == GLFW_KEY_U && action == GLFW_REPEAT ) {
-    if(param.cam.lock_view) return true;
-
-    vec3 u = param.cam.look_dir, v = param.cam.up;
-    param.cam.look_dir = u*param.cam.cos_angle + v*param.cam.sin_angle;
-    param.cam.up = -u*param.cam.sin_angle + v*param.cam.cos_angle;
-
-    return true;
-  }
-  if( key == GLFW_KEY_J && action == GLFW_REPEAT ) {
-    if(param.cam.lock_view) return true;
-
-    vec3 u = param.cam.look_dir, v = param.cam.up;
-    param.cam.look_dir = u*param.cam.cos_angle + -v*param.cam.sin_angle;
-    param.cam.up = u*param.cam.sin_angle + v*param.cam.cos_angle;
-
-    return true;
-  }
-  if( key == GLFW_KEY_K && action == GLFW_REPEAT ) {
-    if(param.cam.lock_view) return true;
-
-    vec3 u = param.cam.right, v = param.cam.look_dir;
-    param.cam.right = u*param.cam.cos_angle + -v*param.cam.sin_angle;
-    param.cam.look_dir = u*param.cam.sin_angle + v*param.cam.cos_angle;
-
-    return true;
-  }
-  if( key == GLFW_KEY_H && action == GLFW_REPEAT ) {
-    if(param.cam.lock_view) return true;
-
-    vec3 u = param.cam.right, v = param.cam.look_dir;
-    param.cam.right = u*param.cam.cos_angle + v*param.cam.sin_angle;
-    param.cam.look_dir = -u*param.cam.sin_angle + v*param.cam.cos_angle;
-
+  if(key == GLFW_KEY_W && action == GLFW_REPEAT)
+  {
+    param.cam.eye = vec3(0.0f, 3.0f, 0.0f);
+    param.cam.look_dir = vec3(0.0f, -1.0f, 0.0f);
+    param.cam.up = vec3(0.0f, 0.0f, 1.0f);
+    printf("XZ view\n");
     return true;
   }
 
-  //------------
-  if( key == GLFW_KEY_M && action == GLFW_REPEAT ) {
-    if(param.cam.lock_view) return true;
-
-    vec3 u = param.cam.right, v = param.cam.up;
-    param.cam.right = u*param.cam.cos_angle + -v*param.cam.sin_angle;
-    param.cam.up = u*param.cam.sin_angle + v*param.cam.cos_angle;
-
+  if( key == GLFW_KEY_E && action == GLFW_REPEAT )
+  {
+    param.cam.eye = vec3(3.0f, 0.0f, 0.0f);
+    param.cam.look_dir = vec3(-1.0f, 0.0f, 0.0f);
+    param.cam.up = vec3(0.0f, 1.0f, 0.0f);
+    printf("YZ view\n");
     return true;
   }
-  if( key == GLFW_KEY_N && action == GLFW_REPEAT ) {
-    if(param.cam.lock_view) return true;
-
-    vec3 u = param.cam.right, v = param.cam.up;
-    param.cam.right = u*param.cam.cos_angle + v*param.cam.sin_angle;
-    param.cam.up = -u*param.cam.sin_angle + v*param.cam.cos_angle;
-
-    return true;
-  }
-  //---------------
 
   return false;
 }

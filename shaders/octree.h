@@ -59,7 +59,7 @@ union Node
 struct Octree
 {
   Node root;
-  
+
   void set_aabb(const vec3& min, const vec3& max);
 
   // assumes MIN and MAX are consistently defined
