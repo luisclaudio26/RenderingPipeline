@@ -40,6 +40,10 @@ static bool intersect_box(const vec3& o, const vec3& d,
 // ----------------------------------
 // --------- FROM OCTREE.H ----------
 // ----------------------------------
+
+// -------------------------
+// --------- Node ----------
+// -------------------------
 Node::Node()
 {
   // we just need to guarantee that the pointers
@@ -53,10 +57,26 @@ Node::~Node()
   //TODO: we should traverse the tree deleting stuff
 }
 
+unsigned char Node::which_child(const vec3& p) const
+{
+  unsigned char address = 0x0;
+  if( p(0) >= this->Internal.x ) address |= 0b100;
+  if( p(1) >= this->Internal.y ) address |= 0b010;
+  if( p(2) >= this->Internal.z ) address |= 0b001;
+  return address;
+}
+
+// ---------------------------
+// --------- Octree ----------
+// ---------------------------
 void Octree::set_aabb(const vec3& min, const vec3& max)
 {
-  this->min = min;
-  this->max = max;
+  root.Internal.min_x = min(0);
+  root.Internal.min_y = min(1);
+  root.Internal.min_z = min(2);
+  root.Internal.max_x = max(0);
+  root.Internal.max_y = max(1);
+  root.Internal.max_z = max(2);
 
   vec3 center = (min + max) * 0.5f;
   root.Internal.x = center(0);
@@ -66,13 +86,18 @@ void Octree::set_aabb(const vec3& min, const vec3& max)
 
 float Octree::closest_leaf(const vec3& o, const vec3& d) const
 {
-  vec3 bb_min = this->min, bb_max = this->max;
+  vec3 bb_min = vec3(root.Internal.min_x,
+                      root.Internal.min_y,
+                      root.Internal.min_z);
+  vec3 bb_max = vec3(root.Internal.max_x,
+                      root.Internal.max_y,
+                      root.Internal.max_z);
+
   float tmin, tmax;
   const Node* node = &root;
 
-  // bail out if no intersection
-  if( !intersect_box(o, d, bb_min, bb_max, tmin, tmax) )
-    return NAN;
+  // bail out if no intersection with the outter bounding box
+  if( !intersect_box(o, d, bb_min, bb_max, tmin, tmax) ) return NAN;
 
   // if we intersect the box, compute
   // the (possibly) inner intersections
@@ -93,7 +118,6 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
   // tmax, computing the mid-points
   // break when tlast = tmax
   float mid[4]; float tlast = tmin;
-
   int i = 0, mid_ind = 0;
   while( tlast != tmax )
   {
@@ -117,16 +141,12 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
     i++;
   }
 
-  /*
-  tm tx ty tz tM
-
-  tx tm tz tM ty
-  */
-
   // for each mid-point, compute the octant
   // if falls into
 
   // descend to the closest octant
+  int oct = node->which_child(o + d*mid[0]);
+  node = node->Internal.children[oct];
 
   // repeat until we reach a leaf (or the node
   // we're trying to descend doesn't exist)
@@ -139,7 +159,7 @@ bool Octree::is_inside(const vec3& p) const
   //TODO: there are lots of repeated code here and in
   //add_point(). FUsion both!
   const Node *n = &root;
-  float l = max(0) - min(0);
+  float l = root.Internal.max_x - root.Internal.min_x;
 
   // assert that P is inside the outter bounding box.
   // TODO: do the same for add_point()
@@ -157,14 +177,9 @@ bool Octree::is_inside(const vec3& p) const
     if( !n ) return false;
 
     // decide in which octant this point falls
-    unsigned char address = 0x0;
-    if( p(0) >= n->Internal.x ) address |= 0b100;
-    if( p(1) >= n->Internal.y ) address |= 0b010;
-    if( p(2) >= n->Internal.z ) address |= 0b001;
-
-    // yes, a pointer to a const pointer...
-    //Node* const *next = &n->Internal.children[address];
-    n = n->Internal.children[address];
+    // and try to descend
+    unsigned char oct = n->which_child(p);
+    n = n->Internal.children[oct];
   }
 
   // if we reached this point, we reached a leaf
@@ -180,17 +195,14 @@ void Octree::add_point(const vec3& p)
   // the bounding box is built to be cubic, so we
   // know all sides are equal. we use this to keep
   // track of the splitting point of each box/octant.
-  float l = max(0) - min(0);
+  float l = root.Internal.max_x - root.Internal.min_x;
 
   // go down until the last but one level,
   // which are internal nodes only
   for(int i = 0; i < MAX_DEPTH-1; ++i)
   {
     // decide in which octant this point falls
-    unsigned char address = 0x0;
-    if( p(0) >= n->Internal.x ) address |= 0b100;
-    if( p(1) >= n->Internal.y ) address |= 0b010;
-    if( p(2) >= n->Internal.z ) address |= 0b001;
+    unsigned char address = n->which_child(p);
     Node **next = &n->Internal.children[address];
 
     // if this node hasn't been created yet, do it
@@ -210,6 +222,14 @@ void Octree::add_point(const vec3& p)
       (*next)->Internal.x = n->Internal.x + (address && 0b100 ? shift : -shift);
       (*next)->Internal.y = n->Internal.y + (address && 0b010 ? shift : -shift);
       (*next)->Internal.z = n->Internal.z + (address && 0b001 ? shift : -shift);
+
+      // compute bounding box for the new node.
+      (*next)->Internal.min_x = address && 0b100 ? n->Internal.x : n->Internal.min_x;
+      (*next)->Internal.min_y = address && 0b010 ? n->Internal.y : n->Internal.min_y;
+      (*next)->Internal.min_z = address && 0b001 ? n->Internal.z : n->Internal.min_z;
+      (*next)->Internal.max_x = ~address && 0b100 ? n->Internal.x : n->Internal.max_x;
+      (*next)->Internal.max_y = ~address && 0b010 ? n->Internal.y : n->Internal.max_y;
+      (*next)->Internal.max_z = ~address && 0b001 ? n->Internal.z : n->Internal.max_z;
     }
 
     // update offsets so they will be correct in the

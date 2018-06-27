@@ -23,6 +23,10 @@ union Node
     // this explicitly as 3 floats.
     float x, y, z;
 
+    // bounding box
+    float min_x, min_y, min_z;
+    float max_x, max_y, max_z;
+
     //Nodes are ordered as follows:
     //
     // l b f
@@ -46,6 +50,8 @@ union Node
     float x, y, z;
   } Leaf;
 
+  unsigned char which_child(const vec3& p) const;
+
   Node();
   ~Node();
 };
@@ -53,8 +59,7 @@ union Node
 struct Octree
 {
   Node root;
-  vec3 min, max;
-
+  
   void set_aabb(const vec3& min, const vec3& max);
 
   // assumes MIN and MAX are consistently defined
