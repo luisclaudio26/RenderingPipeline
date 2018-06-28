@@ -309,7 +309,7 @@ Engine::Engine(const char* path)
   param.cam.far = 10.0f;
   param.cam.FoVy = 45.0f;
   param.cam.FoVx = 45.0f;
-  param.cam.lock_view = false;
+  param.cam.lock_view = true;
   param.front_face = GL_CCW;
   param.draw_mode = GL_FILL;
   param.model_color = rgba(0.0f, 0.0f, 1.0f, 1.0f);
@@ -440,32 +440,113 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   if (Screen::keyboardEvent(key, scancode, action, modifiers)) return true;
 
   //camera movement
-  if(key == GLFW_KEY_Q && action == GLFW_REPEAT)
-  {
-    param.cam.eye(2) += 0.2f; // = vec3(0.0f, 0.0f, 3.0f);
-    //param.cam.look_dir = vec3(0.0f, 0.0f, -1.0f);
-    //param.cam.up = vec3(0.0f, 1.0f, 0.0f);
-    //printf("XY view\n");
+  if(key == GLFW_KEY_A && action == GLFW_REPEAT) {
+    param.cam.eye += (-param.cam.right) * param.cam.step;
+    if(param.cam.lock_view)
+    {
+      param.cam.look_dir = (vec3(0.0f, 0.0f, 0.0f) - param.cam.eye).unit();
+      param.cam.right = param.cam.look_dir.cross(param.cam.up);
+    }
+    return true;
+  }
+  if(key == GLFW_KEY_D && action == GLFW_REPEAT) {
+    param.cam.eye += param.cam.right * param.cam.step;
+    if(param.cam.lock_view)
+    {
+      param.cam.look_dir = (vec3(0.0f, 0.0f, 0.0f) - param.cam.eye).unit();
+      param.cam.right = param.cam.look_dir.cross(param.cam.up);
+    }
+    return true;
+  }
+  if( key == GLFW_KEY_W && action == GLFW_REPEAT ) {
+    param.cam.eye += param.cam.look_dir * param.cam.step;
+    //if(param.cam.param.cam.lock_view) param.cam.look_dir = (vec3(0.0f, 0.0f, 0.0f) - param.cam.eye).unit();
+    return true;
+  }
+  if( key == GLFW_KEY_S && action == GLFW_REPEAT ) {
+    param.cam.eye += param.cam.look_dir * (-param.cam.step);
+    //if(param.cam.param.cam.lock_view) param.cam.look_dir = (vec3(0.0f, 0.0f, 0.0f) - param.cam.eye).unit();
+    return true;
+  }
+  if( key == GLFW_KEY_R && action == GLFW_REPEAT ) {
+    param.cam.eye += param.cam.up * param.cam.step;
+    if(param.cam.lock_view)
+    {
+      param.cam.look_dir = (vec3(0.0f, 0.0f, 0.0f) - param.cam.eye).unit();
+      param.cam.up = param.cam.right.cross(param.cam.look_dir);
+    }
+
+    return true;
+  }
+  if( key == GLFW_KEY_F && action == GLFW_REPEAT ) {
+    param.cam.eye += (-param.cam.up) * param.cam.step;
+    if(param.cam.lock_view)
+    {
+      param.cam.look_dir = (vec3(0.0f, 0.0f, 0.0f) - param.cam.eye).unit();
+      param.cam.up = param.cam.right.cross(param.cam.look_dir);
+    }
     return true;
   }
 
-  if(key == GLFW_KEY_W && action == GLFW_REPEAT)
-  {
-    param.cam.eye = vec3(0.0f, 3.0f, 0.0f);
-    param.cam.look_dir = vec3(0.0f, -1.0f, 0.0f);
-    param.cam.up = vec3(0.0f, 0.0f, 1.0f);
-    printf("XZ view\n");
+  //TODO: we can precompute sin and cos values!
+  if( key == GLFW_KEY_U && action == GLFW_REPEAT ) {
+    if(param.cam.lock_view) return true;
+
+    vec3 u = param.cam.look_dir, v = param.cam.up;
+    param.cam.look_dir = u*param.cam.cos_angle + v*param.cam.sin_angle;
+    param.cam.up = -u*param.cam.sin_angle + v*param.cam.cos_angle;
+
+    return true;
+  }
+  if( key == GLFW_KEY_J && action == GLFW_REPEAT ) {
+    if(param.cam.lock_view) return true;
+
+    vec3 u = param.cam.look_dir, v = param.cam.up;
+    param.cam.look_dir = u*param.cam.cos_angle + -v*param.cam.sin_angle;
+    param.cam.up = u*param.cam.sin_angle + v*param.cam.cos_angle;
+
+    return true;
+  }
+  if( key == GLFW_KEY_K && action == GLFW_REPEAT ) {
+    if(param.cam.lock_view) return true;
+
+    vec3 u = param.cam.right, v = param.cam.look_dir;
+    param.cam.right = u*param.cam.cos_angle + -v*param.cam.sin_angle;
+    param.cam.look_dir = u*param.cam.sin_angle + v*param.cam.cos_angle;
+
+    return true;
+  }
+  if( key == GLFW_KEY_H && action == GLFW_REPEAT ) {
+    if(param.cam.lock_view) return true;
+
+    vec3 u = param.cam.right, v = param.cam.look_dir;
+    param.cam.right = u*param.cam.cos_angle + v*param.cam.sin_angle;
+    param.cam.look_dir = -u*param.cam.sin_angle + v*param.cam.cos_angle;
+
     return true;
   }
 
-  if( key == GLFW_KEY_E && action == GLFW_REPEAT )
-  {
-    param.cam.eye = vec3(3.0f, 0.0f, 0.0f);
-    param.cam.look_dir = vec3(-1.0f, 0.0f, 0.0f);
-    param.cam.up = vec3(0.0f, 1.0f, 0.0f);
-    printf("YZ view\n");
+  //------------
+  if( key == GLFW_KEY_M && action == GLFW_REPEAT ) {
+    if(param.cam.lock_view) return true;
+
+    vec3 u = param.cam.right, v = param.cam.up;
+    param.cam.right = u*param.cam.cos_angle + -v*param.cam.sin_angle;
+    param.cam.up = u*param.cam.sin_angle + v*param.cam.cos_angle;
+
     return true;
   }
+  if( key == GLFW_KEY_N && action == GLFW_REPEAT ) {
+    if(param.cam.lock_view) return true;
+
+    vec3 u = param.cam.right, v = param.cam.up;
+    param.cam.right = u*param.cam.cos_angle + v*param.cam.sin_angle;
+    param.cam.up = -u*param.cam.sin_angle + v*param.cam.cos_angle;
+
+    return true;
+  }
+  //---------------
+
 
   return false;
 }
