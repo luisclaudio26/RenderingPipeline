@@ -33,12 +33,16 @@ public:
     // or not should be enough to compute visibilities and thus,
     // ambient occlusion.
     // As for actual shading I don't know
-    float v = tree.closest_leaf(o_ws, d_ws);
+    vec3 nr;
+    float v = tree.closest_leaf(o_ws, d_ws, nr);
 
-    if(v != v)
+    if(v < 0.0f)
       return rgba(0.1f, 0.1f, 0.1f, 1.0f);
     else
-      return rgba(0.0f, 1.0f, 0.0f, 1.0f);
+      return rgba((nr(0)+1.0f)*0.5f,
+                  (nr(1)+1.0f)*0.5f,
+                  (nr(2)+1.0f)*0.5f,
+                  1.0f);
   }
 };
 

@@ -66,6 +66,7 @@ struct Octree
   void add_point(const vec3& p);
   bool is_inside(const vec3& p) const;
   float closest_leaf(const vec3& o, const vec3& d) const;
+  float closest_leaf(const vec3& o, const vec3& d, vec3& normal) const;
 };
 
 #endif

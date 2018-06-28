@@ -123,6 +123,8 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
     if(!node) continue;
 
     // this is the first leaf intersected by the ray!
+    // TODO: return actual intersection point and normal
+    // so we can perform some basic shading.
     if(depth == MAX_DEPTH) return tmin;
 
     // if we intersect the box, compute
@@ -187,6 +189,132 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
 
   // if we reached this point, no actual leaf was found
   return NAN;
+}
+
+float Octree::closest_leaf(const vec3& o, const vec3& d, vec3& normal) const
+{
+  struct TraversalElem
+  {
+    const Node* n;
+    float tmin, tmax;
+    vec3 normal;
+    int depth;
+
+    TraversalElem(const Node* n, float tmin, float tmax, int depth)
+      : n(n), tmin(tmin), tmax(tmax), depth(depth) { }
+
+    TraversalElem(const Node* n, float tmin, float tmax, const vec3& normal, int depth)
+        : n(n), tmin(tmin), tmax(tmax), depth(depth), normal(normal) { }
+  };
+
+  // --------------------
+  vec3 bb_min = vec3(root.Internal.min_x,
+                      root.Internal.min_y,
+                      root.Internal.min_z);
+  vec3 bb_max = vec3(root.Internal.max_x,
+                      root.Internal.max_y,
+                      root.Internal.max_z);
+
+  // bail out if no intersection with the outter bounding box
+  // TODO: not computing first intersection gives problems in the cube.obj
+  // scene!
+  float outter_tmin, outter_tmax;
+  if( !intersect_box(o, d, bb_min, bb_max, outter_tmin, outter_tmax) )
+    return -1.0f;
+
+  std::stack<TraversalElem> stack;
+  stack.push( TraversalElem(&root, outter_tmin, outter_tmax, 1) );
+
+  while( !stack.empty() )
+  {
+    TraversalElem e = stack.top(); stack.pop();
+    float tmin = e.tmin, tmax = e.tmax;
+    const Node* node = e.n;
+    int depth = e.depth;
+
+    // bail out if node is NAN. there's no leaf down here
+    if(!node) continue;
+
+    // this is the first leaf intersected by the ray!
+    // TODO: return actual intersection point and normal
+    // so we can perform some basic shading.
+    if(depth == MAX_DEPTH)
+    {
+      normal = e.normal;
+      return tmin;
+    }
+
+    // if we intersect the box, compute
+    // the (possibly) inner intersections
+    // TODO: Take care of INFs!
+    const float sx = node->Internal.x, sy = node->Internal.y, sz = node->Internal.z;
+    float tx = (sx - o(0)) / d(0);
+    float ty = (sy - o(1)) / d(1);
+    float tz = (sz - o(2)) / d(2);
+
+    // order intersections in decreasing order because
+    // we start from the furthest box to the closest one,
+    // which is the order we want to push them to the stack.
+    // we don't include tmax here because this
+    // is the intersection we'll be starting with.
+    //TODO: problem with signs! need to decide whether intersects
+    //from the front or from behind
+    struct TNormal { float t; vec3 n; };
+    TNormal t[] = { TNormal{.t=tx, .n=vec3(1.0f, 0.0f, 0.0f)},
+                    TNormal{.t=ty, .n=vec3(0.0f, 1.0f, 0.0f)},
+                    TNormal{.t=tz, .n=vec3(0.0f, 0.0f, 1.0f)},
+                    TNormal{.t=tmin, .n=e.normal} };
+
+    std::sort(std::begin(t), std::end(t), [](const TNormal& a, const TNormal& b)
+                                            {
+                                              return a.t > b.t;
+                                            });
+
+    // loop intersections in order, discarding
+    // points when they're before tmin or after
+    // tmax, computing the mid-points
+    // break when tlast = tmin
+    float mid[4]; float tlast = tmax;
+    int i = 0, mid_ind = 0;
+    while( tlast != tmin )
+    {
+      //TODO: segfaulting here because i is too big
+      //float cur = t[i];
+      TNormal cur = t[i];
+
+      // if our current intersection is BEHIND
+      // tlast, just skip this and get the next
+      if( cur.t >= tlast )
+      {
+        //TODO: probably because if there's any problem with
+        // all t's being infinity or nan, this will loop forever.
+        // We need to limit the amount of loops here so that i
+        // is never greater than 3! but I'm not sure right now
+        // what's the best way to do this.
+        i++;
+        continue;
+      }
+
+      // intersection is correct; compute mid point
+      float mid_point = (tlast + cur.t) * 0.5f;
+
+      // compute in which octant the mid point falls
+      // and push to the stack
+      int oct = node->which_child(o + d*mid_point);
+      const Node* next = node->Internal.children[oct];
+
+      TraversalElem next_e(next, cur.t, tlast, cur.n, depth+1);
+      stack.push(next_e);
+
+      // advance tlast to the next intersection
+      // so we can get the next octant being intersected
+      tlast = cur.t;
+      i++;
+    }
+  }
+
+  // if we reached this point, no actual leaf was found
+  return -1.0f;
 }
 
 bool Octree::is_inside(const vec3& p) const
