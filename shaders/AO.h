@@ -9,16 +9,52 @@ class AmbientOcclusionShader : public FragmentShader
 private:
   const Octree &tree;
 
+  const float EPS = 0.000001f;
+  inline bool is_zero(float a) { return std::fabs(a) < EPS; }
+
 public:
   AmbientOcclusionShader(const Octree& tree) : tree(tree) {}
 
   rgba launch(const float* vertex_in, const float* dVdx, int n) override
   {
-    vec3 nn( get_attribute("normal", vertex_in) );
-    return rgba( (nn(0)+1.0f)*0.5f,
-                  (nn(1)+1.0f)*0.5f,
-                  (nn(2)+1.0f)*0.5f,
-                  1.0f);
+    vec3 N( get_attribute("normal", vertex_in) );
+    vec3 P( get_attribute("pos", vertex_in) );
+
+    // compute a vector tangent to the normal. Our sampling
+    // is always isotropic so tangents don't need to be consistent.
+    // TODO: care for N(2) == 0
+    // NOTE: Lots of copies here; inplace modifications would be better.
+    float inv_Nz = is_zero(N(2)) ? 1.0f/N(0) : 1.0f/N(2);
+    float Cz = P.dot(N) * inv_Nz;
+    vec3 T = (P-vec3(0.0f, 0.0f, Cz)).unit();
+
+    // shoot ONE ray. if occluded, return zero.
+    // this should give us a hint on whether AO
+    // will work or not
+    // NOTE: WE CANT SIMPLY SHOOT A RAY. The voxel representation
+    // will hardly ever tightly pack the mesh, which means that
+    // self-intersection when traversing the octree will happen:
+    //
+    // -----------    <- voxel boundary
+    // _____     |
+    //      \    |
+    //      P--> X-->
+    //      |    |
+    //      |    |
+    //   ^
+    // actual mesh element
+    //
+    // When shooting rays here in fragment shader, we're shooting
+    // it from P whereas we'd want to shoot from X, the (actual)
+    // closest intersection between the ray P--> and the voxel
+    // set. This could be naïvely solved by shooting a first ray
+    // to retrieve the self-intersection, then shooting again to get
+    // the actual intersection we want, but this is quite slow.
+    // What's a better way to do it?
+    if( tree.closest_leaf(P+N*0.001f,N) < 0.0f )
+      return rgba(1.0f, 1.0f, 1.0f, 1.0f);
+    else
+      return rgba(0.2f, 0.2f, 0.2f, 1.0f);
   }
 };
 
