@@ -169,8 +169,6 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
 
       // intersection is correct; compute mid point
       float mid_point = (tlast + cur) * 0.5f;
-      //mid[mid_ind] = (tlast + cur) * 0.5f;
-      //mid_ind++;
 
       // compute in which octant the mid point falls
       // and push to the stack
@@ -178,11 +176,6 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
       const Node* next = node->Internal.children[oct];
 
       TraversalElem next_e(next, cur, tlast, depth+1);
-      /*
-      next_e.depth = depth + 1;
-      next_e.node = next;
-      next_e.tmin = cur;
-      next_e.tmax = tlast; */
       stack.push(next_e);
 
       // advance tlast to the next intersection
@@ -190,15 +183,6 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
       tlast = cur;
       i++;
     }
-
-    // for each mid-point, compute the octant if falls into
-
-    // descend to the closest octant
-    /*
-    int oct = node->which_child(o + d*mid[0]);
-    node = node->Internal.children[oct];
-    depth = depth + 1;
-    */
   }
 
   // if we reached this point, no actual leaf was found
@@ -243,11 +227,6 @@ void Octree::add_point(const vec3& p)
 {
   Node *n = &root;
 
-  // the bounding box is built to be cubic, so we
-  // know all sides are equal. we use this to keep
-  // track of the splitting point of each box/octant.
-  float l = root.Internal.max_x - root.Internal.min_x;
-
   // go down until the last but one level,
   // which are internal nodes only
   for(int i = 0; i < MAX_DEPTH-1; ++i)
@@ -260,21 +239,6 @@ void Octree::add_point(const vec3& p)
     if( !(*next) )
     {
       *next = new Node;
-
-      // offset to the center of the next octant.
-      // all the displacements are either SHIFT of
-      // -SHIFT from the center, depending on the
-      // address of this octant.
-      // The way we defined the address, when we
-      // have a 1 bit in a given position (positive
-      // in a given axis), we ADD the shift; otherwise
-      // we subtract.
-      /*
-      float shift = l/4;
-      (*next)->Internal.x = n->Internal.x + (address & 0b100 ? shift : -shift);
-      (*next)->Internal.y = n->Internal.y + (address & 0b010 ? shift : -shift);
-      (*next)->Internal.z = n->Internal.z + (address & 0b001 ? shift : -shift);
-      */
 
       // compute bounding box for the new node.
       (*next)->Internal.min_x = address & 0b100 ? n->Internal.x : n->Internal.min_x;
@@ -291,18 +255,9 @@ void Octree::add_point(const vec3& p)
       (*next)->Internal.z = ( (*next)->Internal.min_z + (*next)->Internal.max_z ) * 0.5f;
     }
 
-    // update offsets so they will be correct in the
-    // next iteration if we need to build a node
-    l = l/2;
-
     // descend tree
     n = *next;
   }
 
-  // the last level is a leaf
-  /*
-  n->Leaf.x = p(0);
-  n->Leaf.y = p(1);
-  n->Leaf.z = p(2);
-  */
+  //TODO: do something when we reach leaves
 }
