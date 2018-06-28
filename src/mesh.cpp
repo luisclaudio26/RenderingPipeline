@@ -114,7 +114,15 @@ void Mesh::load_geometry_data(const std::vector<tinyobj::shape_t>& shapes,
         pos.push_back(vy);
         pos.push_back(vz);
 
-        //face.v[v_id] = Vec3( vx, vy, vz );
+        if( !attrib.normals.empty() )
+        {
+          float nx = attrib.normals[3*v.normal_index + 0];
+          float ny = attrib.normals[3*v.normal_index + 1];
+          float nz = attrib.normals[3*v.normal_index + 2];
+          normal.push_back(nx);
+          normal.push_back(ny);
+          normal.push_back(nz);
+        }
 
         if( !attrib.texcoords.empty() )
         {

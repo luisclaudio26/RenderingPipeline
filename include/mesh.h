@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <nanogui/glutil.h>
 #include "primitives.h"
 #include "matrix.h"
 #include "../3rdparty/tiny_obj_loader.h"
@@ -23,13 +22,9 @@ private:
                           const tinyobj::attrib_t& attrib);
 
 public:
-  Eigen::MatrixXf mPos, mNormal, mUV, mAmb, mDiff, mSpec, mShininess;
-  std::vector<Triangle> tris;
+  std::vector<float> pos, uv, normal;
 
-  int n_tris;
-  std::vector<float> pos, uv;
-
-  Mesh() : n_tris(0) {}
+  Mesh() {}
   Mesh(const std::string& path)
   {
     load_file(path);

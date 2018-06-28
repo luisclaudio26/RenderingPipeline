@@ -198,23 +198,7 @@ void Engine::drawContents()
   fflush(stdout);
 }
 
-bool Engine::resizeEvent(const Eigen::Vector2i &size)
-{
-  buffer_height = this->height(), buffer_width = this->width();
 
-  //delete previous texture and allocate a new one with the new size
-  glDeleteTextures(1, &color_gpu);
-  glGenTextures(1, &color_gpu);
-  glBindTexture(GL_TEXTURE_2D, color_gpu);
-  glTexStorage2D(GL_TEXTURE_2D,
-                  1,
-                  GL_RGBA8,
-                  buffer_width,
-                  buffer_height);
-
-  //resize buffers
-  renderTarget.resizeBuffer(buffer_width, buffer_height);
-}
 
 Engine::Engine(const char* path)
   : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test"),
@@ -251,7 +235,16 @@ Engine::Engine(const char* path)
   // would need to store them inside mesh_data also)
   mesh.load_file( std::string(path) );
   std::vector<float> mesh_data;
-  for( auto p : mesh.pos ) mesh_data.push_back(p);
+  for(int i = 0; i < mesh.pos.size(); i += 3)
+  {
+    mesh_data.push_back(mesh.pos[i+0]);
+    mesh_data.push_back(mesh.pos[i+1]);
+    mesh_data.push_back(mesh.pos[i+2]);
+    mesh_data.push_back(mesh.normal[i+0]);
+    mesh_data.push_back(mesh.normal[i+1]);
+    mesh_data.push_back(mesh.normal[i+2]);
+  }
+
   mesh.transform_to_center(model);
 
   // ----------------------------------
@@ -316,11 +309,13 @@ Engine::Engine(const char* path)
   // ---------------------------------
   // ---------- Upload data ----------
   // ---------------------------------
-  gp.upload_data(mesh_data, 3);
+  gp.upload_data(mesh_data, 6);
   gp.define_attribute("pos", 3, 0);
+  gp.define_attribute("normal", 3, 3);
 
-  renderer.upload_data(mesh_data, 3);
+  renderer.upload_data(mesh_data, 6);
   renderer.define_attribute("pos", 3, 0);
+  renderer.define_attribute("normal", 3, 3);
 
   // NOTE: this is for voxel raytracing only
   // a simple quad so we can invoke the fragment shader for each pixel
@@ -481,4 +476,22 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
 
 
   return false;
+}
+
+bool Engine::resizeEvent(const Eigen::Vector2i &size)
+{
+  buffer_height = this->height(), buffer_width = this->width();
+
+  //delete previous texture and allocate a new one with the new size
+  glDeleteTextures(1, &color_gpu);
+  glGenTextures(1, &color_gpu);
+  glBindTexture(GL_TEXTURE_2D, color_gpu);
+  glTexStorage2D(GL_TEXTURE_2D,
+                  1,
+                  GL_RGBA8,
+                  buffer_width,
+                  buffer_height);
+
+  //resize buffers
+  renderTarget.resizeBuffer(buffer_width, buffer_height);
 }
