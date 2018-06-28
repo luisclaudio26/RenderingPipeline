@@ -10,6 +10,7 @@
 #include "../shaders/octreebuilder.h"
 #include "../shaders/passthrough.h"
 #include "../shaders/raymarcher.h"
+#include "../shaders/AO.h"
 
 const int DEFAULT_WIDTH = 960;
 const int DEFAULT_HEIGHT = 540;
@@ -25,8 +26,10 @@ private:
 
   // voxel rendering
   GraphicPipeline renderer;
-  PassthroughShader passthrough;
-  RayMarcherShader raymarch;
+  VertexShader standard_renderer;
+  AmbientOcclusionShader amb_occ;
+  //PassthroughShader passthrough;
+  //RayMarcherShader raymarch;
   Framebuffer renderTarget;
 
   void compute_octree();

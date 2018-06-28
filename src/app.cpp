@@ -13,16 +13,6 @@
 
 #include "../3rdparty/stb_image_write.h"
 
-static void print_node(const Node* n)
-{
-  if(!n) return;
-  printf("[%f %f %f | %f %f %f]\n", n->Internal.min_x, n->Internal.min_y, n->Internal.min_z,
-                                    n->Internal.max_x, n->Internal.max_y, n->Internal.max_z);
-  for(int i = 0; i < 8; ++i)
-    print_node(n->Internal.children[i]);
-}
-
-// ------------------------------
 const int GRID_RES = 128;
 
 void Engine::draw(NVGcontext *ctx)
@@ -149,86 +139,23 @@ void Engine::compute_octree()
 
 void Engine::drawContents()
 {
-  //-------------------------------------
-  //----------- OCTREE BUILDUP ----------
-  //-------------------------------------
   clock_t start = clock();
 
-  /*
-  //proj and viewport could be precomputed!
-  mat4 view = mat4::view(param.cam.eye, param.cam.eye + param.cam.look_dir, param.cam.up);
-  mat4 proj = mat4::orthogonal(-3.0f, 3.0f, -3.0f, 3.0f, param.cam.near, param.cam.far);
-  mat4 viewport = mat4::viewport(fbo.width(), fbo.height());
-
-  fbo.clearDepthBuffer();
-  fbo.clearColorBuffer();
-
-  // TEXTURE SAMPLING
-  // [X] Bind a loaded texture to a given texture unit
-  // [X] Bind texture unit id to uniform
-  gp.bind_tex_unit(checker, 0);
-
-  gp.set_viewport(viewport);
-  gp.upload_uniform("view", view.data(), 16);
-  gp.upload_uniform("model", model.data(), 16);
-  gp.upload_uniform("proj", proj.data(), 16);
-  gp.upload_uniform("tex", 0.0);
-  //gp.upload_uniform("eye", param.cam.eye.data(), 3);
-
-  gp.render(fbo, param.front_face == GL_CCW, param.draw_mode != GL_LINE);
-
-  GLubyte *color_buffer = fbo.colorBuffer();
-  */
-
-  // ---------------------------------
-  // -------- RENDER PREVIEW ---------
-  // ---------------------------------
-  /*
-  GraphicPipeline renderer;
-
-  // a simple quad for simply being able to invoke a fragment
-  // shader for each pixel
-  std::vector<float> quad;
-  quad.push_back(-1.0f); quad.push_back(-1.0f);
-  quad.push_back(+1.0f); quad.push_back(-1.0f);
-  quad.push_back(+1.0f); quad.push_back(+1.0f);
-  quad.push_back(-1.0f); quad.push_back(-1.0f);
-  quad.push_back(+1.0f); quad.push_back(+1.0f);
-  quad.push_back(-1.0f); quad.push_back(+1.0f);
-  renderer.upload_data(quad, 2);
-  renderer.define_attribute("pos", 2, 0);
-
-  // shader setting
-  PassthroughShader passthrough;
-  RayMarcherShader raymarch(OctreeBuilderShader::tree);
-  renderer.set_vertex_shader(passthrough);
-  renderer.set_fragment_shader(raymarch);
-  */
-
+  //----------------------------------------------
+  //----------- RENDER FRAME TO TEXTURE ----------
+  //----------------------------------------------
   // define viewport and uniforms
   //Framebuffer renderTarget(buffer_width, buffer_height);
   mat4 viewport = mat4::viewport(renderTarget.width(), renderTarget.height());
-
-  //vec3 eye(0.5f, 0.8f, +1.5f);
-  //vec3 look_at(0.0f, 0.0f, 0.0f);
-  //vec3 up(0.0f, 1.0f, 0.0f);
   mat4 view = mat4::view(param.cam.eye,
                           param.cam.eye + param.cam.look_dir,
                           param.cam.up);
-
-  // TODO: this can be computed from view but I'm too lazy
-  vec3 w = -param.cam.look_dir.unit();
-  vec3 u = (param.cam.up.cross(w)).unit();
-  vec3 v = w.cross(u);
-  mat4 inv_view( vec4(u(0), u(1), u(2), 0.0f),
-                  vec4(v(0), v(1), v(2), 0.0f),
-                  vec4(w(0), w(1), w(2), 0.0f),
-                  vec4(param.cam.eye, 1.0f) );
+  mat4 proj = mat4::perspective(45.0f, 45.0f, 0.5f, 5.0f);
 
   renderer.set_viewport(viewport);
-  renderer.upload_uniform("eye", param.cam.eye.data(), 3);
   renderer.upload_uniform("view", view.data(), 16);
-  renderer.upload_uniform("inv_view", inv_view.data(), 16);
+  renderer.upload_uniform("proj", proj.data(), 16);
+  renderer.upload_uniform("model", model.data(), 16);
 
   // clear and render
   renderTarget.clearDepthBuffer();
@@ -292,7 +219,7 @@ bool Engine::resizeEvent(const Eigen::Vector2i &size)
 Engine::Engine(const char* path)
   : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test"),
     buffer_width(DEFAULT_WIDTH), buffer_height(DEFAULT_HEIGHT),
-    raymarch(OctreeBuilderShader::tree)
+    amb_occ(OctreeBuilderShader::tree)
 {
   // --------------------------------
   // --------- Scene setup ----------
@@ -349,8 +276,8 @@ Engine::Engine(const char* path)
   //--------------------------------------
   gp.set_fragment_shader(voxelizer);
   gp.set_vertex_shader(standard);
-  renderer.set_fragment_shader(raymarch);
-  renderer.set_vertex_shader(passthrough);
+  renderer.set_fragment_shader(amb_occ);
+  renderer.set_vertex_shader(standard_renderer);
 
   shader.init("passthrough",
 
@@ -392,7 +319,12 @@ Engine::Engine(const char* path)
   gp.upload_data(mesh_data, 3);
   gp.define_attribute("pos", 3, 0);
 
+  renderer.upload_data(mesh_data, 3);
+  renderer.define_attribute("pos", 3, 0);
+
+  // NOTE: this is for voxel raytracing only
   // a simple quad so we can invoke the fragment shader for each pixel
+  /*
   std::vector<float> quad;
   quad.push_back(-1.0f); quad.push_back(-1.0f);
   quad.push_back(+1.0f); quad.push_back(-1.0f);
@@ -401,7 +333,7 @@ Engine::Engine(const char* path)
   quad.push_back(+1.0f); quad.push_back(+1.0f);
   quad.push_back(-1.0f); quad.push_back(+1.0f);
   renderer.upload_data(quad, 2);
-  renderer.define_attribute("pos", 2, 0);
+  renderer.define_attribute("pos", 2, 0); */
 
   // upload triangles which we'll use to render the final
   // image and the corresponding texture coordinates

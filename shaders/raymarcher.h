@@ -46,4 +46,13 @@ public:
   }
 };
 
+/* NOTE: this is how we correctly invert the view matrix
+
+mat4 inv_view( vec4(u(0), u(1), u(2), 0.0f),
+                vec4(v(0), v(1), v(2), 0.0f),
+                vec4(w(0), w(1), w(2), 0.0f),
+                vec4(param.cam.eye, 1.0f) );
+
+*/
+
 #endif
