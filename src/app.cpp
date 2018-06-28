@@ -217,13 +217,13 @@ void Engine::drawContents()
                           param.cam.up);
 
   // TODO: this can be computed from view but I'm too lazy
-  vec3 w = param.cam.eye.unit();
+  vec3 w = -param.cam.look_dir.unit();
   vec3 u = (param.cam.up.cross(w)).unit();
   vec3 v = w.cross(u);
   mat4 inv_view( vec4(u(0), u(1), u(2), 0.0f),
                   vec4(v(0), v(1), v(2), 0.0f),
                   vec4(w(0), w(1), w(2), 0.0f),
-                  vec4(param.cam.eye.dot(u), param.cam.eye.dot(v), param.cam.eye.dot(w), 1.0f));
+                  vec4(param.cam.eye, 1.0f) );
 
   renderer.set_viewport(viewport);
   renderer.upload_uniform("eye", param.cam.eye.data(), 3);
@@ -298,15 +298,15 @@ Engine::Engine(const char* path)
   // --------- Scene setup ----------
   // --------------------------------
   float angle = 0.0174533f;
-  param.cam.eye = vec3(0.0f, 0.0f, 2.0f);
+  param.cam.eye = vec3(0.0f, 0.0f, +3.0f);
   param.cam.up = vec3(0.0f, 1.0f, 0.0f);
+  param.cam.look_dir = vec3(0.0f, 0.0f, -1.0f);
   param.cam.cos_angle = (float)cos(angle);
   param.cam.sin_angle = (float)sin(angle);
-  param.cam.look_dir = vec3(0.0f, 0.0f, -1.0f);
   param.cam.right = vec3(1.0f, 0.0f, 0.0f);
   param.cam.step = 0.1f;
   param.cam.near = 0.5f;
-  param.cam.far = 5.0f;
+  param.cam.far = 10.0f;
   param.cam.FoVy = 45.0f;
   param.cam.FoVx = 45.0f;
   param.cam.lock_view = false;
@@ -442,10 +442,10 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   //camera movement
   if(key == GLFW_KEY_Q && action == GLFW_REPEAT)
   {
-    param.cam.eye = vec3(0.0f, 0.0f, 3.0f);
-    param.cam.look_dir = vec3(0.0f, 0.0f, -1.0f);
-    param.cam.up = vec3(0.0f, 1.0f, 0.0f);
-    printf("XY view\n");
+    param.cam.eye(2) += 0.2f; // = vec3(0.0f, 0.0f, 3.0f);
+    //param.cam.look_dir = vec3(0.0f, 0.0f, -1.0f);
+    //param.cam.up = vec3(0.0f, 1.0f, 0.0f);
+    //printf("XY view\n");
     return true;
   }
 

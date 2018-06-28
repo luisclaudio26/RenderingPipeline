@@ -151,12 +151,18 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
     int i = 0, mid_ind = 0;
     while( tlast != tmin )
     {
+      //TODO: segfaulting here because i is too big
       float cur = t[i];
 
       // if our current intersection is BEHIND
       // tlast, just skip this and get the next
       if( cur >= tlast )
       {
+        //TODO: probably because if there's any problem with
+        //all t's being infinity or nan, this will loop forever.
+        // We need to limit the amount of loops here so that i
+        // is never greater than 3! but I'm not sure right now
+        // what's the best way to do this.
         i++;
         continue;
       }

@@ -132,7 +132,7 @@ public:
     vec3 u = (up.cross(w)).unit();
     vec3 v = w.cross(u);
 
-    // this doesn't seem correct. mat4 is built by columns or rows??
+    //TODO: this doesn't seem correct. mat4 is built by columns or rows??
     return mat4(vec4(u(0), v(0), w(0), 0.0f),
                 vec4(u(1), v(1), w(1), 0.0f),
                 vec4(u(2), v(2), w(2), 0.0f),
