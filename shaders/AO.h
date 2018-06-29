@@ -51,13 +51,13 @@ public:
     // to retrieve the self-intersection, then shooting again to get
     // the actual intersection we want, but this is quite slow.
     // What's a better way to do it?
-    float v = tree.closest_leaf(P+N*0.001f,N);
+    float v = tree.closest_leaf(P,N);
 
     //printf("%f ", v);
 
     if( v != v )
       return rgba(1.0f, 0.0f, 0.0f, 1.0f);
-    else if( v <= 0.0f )
+    else if( v < 0.0f )
       return rgba(0.0f, 1.0f, 0.0f, 1.0f);
     else
     {
@@ -66,5 +66,9 @@ public:
     }
   }
 };
+
+//QUESTION:
+//PRIMEIRO PASSO RENDERIZANDO A GEOMETRIA NORMAL, ARMAZENA EM G-BUFFER,
+//DEPOIS RASTERIZA OS VOXELS COM A COR CORRETA E MISTURA OS DOIS
 
 #endif

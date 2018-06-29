@@ -74,9 +74,9 @@ unsigned char Node::which_child(const vec3& p) const
 
 bool Node::inside_node(const vec3& p) const
 {
-  bool inside_x = (min_x < p(0)) && (p(0) < max_x);
-  bool inside_y = (min_y < p(1)) && (p(1) < max_y);
-  bool inside_z = (min_z < p(2)) && (p(2) < max_z);
+  bool inside_x = (min_x <= p(0)) && (p(0) <= max_x);
+  bool inside_y = (min_y <= p(1)) && (p(1) <= max_y);
+  bool inside_z = (min_z <= p(2)) && (p(2) <= max_z);
   return inside_x && inside_y && inside_z;
 }
 
@@ -143,13 +143,9 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
     // this leaf, just keep searching for further alive leaves.
     // If we found a leaf which is alive AND our intersection point
     // is outside it, then we succedeed in finding the closest leaf!
-    // QUESTION: test tmin == 0.0 instead of inside_node? problem due
-    // to precision?
     if(depth == MAX_DEPTH)
     {
-      vec3 p = o + d * tmin;
-      if( !node->Leaf.alive || node->inside_node(p) )
-        continue;
+      if( !node->Leaf.alive || node->inside_node(o) ) continue;
       else return tmin;
     }
 
