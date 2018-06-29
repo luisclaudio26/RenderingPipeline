@@ -51,10 +51,19 @@ public:
     // to retrieve the self-intersection, then shooting again to get
     // the actual intersection we want, but this is quite slow.
     // What's a better way to do it?
-    if( tree.closest_leaf(P+N*0.001f,N) < 0.0f )
-      return rgba(1.0f, 1.0f, 1.0f, 1.0f);
+    float v = tree.closest_leaf(P+N*0.001f,N);
+
+    //printf("%f ", v);
+
+    if( v != v )
+      return rgba(1.0f, 0.0f, 0.0f, 1.0f);
+    else if( v <= 0.0f )
+      return rgba(0.0f, 1.0f, 0.0f, 1.0f);
     else
-      return rgba(0.2f, 0.2f, 0.2f, 1.0f);
+    {
+      //printf("%f ", v);
+      return rgba(0.0f, 0.0f, v, 1.0f);
+    }
   }
 };
 

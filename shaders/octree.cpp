@@ -45,12 +45,17 @@ static bool intersect_box(const vec3& o, const vec3& d,
 // -------------------------
 // --------- Node ----------
 // -------------------------
-Node::Node()
+Node::Node() : min_x(0.0f), min_y(0.0f), min_z(0.0f),
+               max_x(0.0f), max_y(0.0f), max_z(0.0f)
 {
   // we just need to guarantee that the pointers
   // are all null
   for(int i = 0; i < 8; ++i)
     Internal.children[i] = nullptr;
+
+  // AND that the node is not alive as of its creation
+  // This part won't overlap the children nodes pointers.
+  Leaf.alive = false;
 }
 
 Node::~Node()
@@ -67,17 +72,25 @@ unsigned char Node::which_child(const vec3& p) const
   return address;
 }
 
+bool Node::inside_node(const vec3& p) const
+{
+  bool inside_x = (min_x < p(0)) && (p(0) < max_x);
+  bool inside_y = (min_y < p(1)) && (p(1) < max_y);
+  bool inside_z = (min_z < p(2)) && (p(2) < max_z);
+  return inside_x && inside_y && inside_z;
+}
+
 // ---------------------------
 // --------- Octree ----------
 // ---------------------------
 void Octree::set_aabb(const vec3& min, const vec3& max)
 {
-  root.Internal.min_x = min(0);
-  root.Internal.min_y = min(1);
-  root.Internal.min_z = min(2);
-  root.Internal.max_x = max(0);
-  root.Internal.max_y = max(1);
-  root.Internal.max_z = max(2);
+  root.min_x = min(0);
+  root.min_y = min(1);
+  root.min_z = min(2);
+  root.max_x = max(0);
+  root.max_y = max(1);
+  root.max_z = max(2);
 
   vec3 center = (min + max) * 0.5f;
   root.Internal.x = center(0);
@@ -98,16 +111,13 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
   };
 
   // --------------------
-  vec3 bb_min = vec3(root.Internal.min_x,
-                      root.Internal.min_y,
-                      root.Internal.min_z);
-  vec3 bb_max = vec3(root.Internal.max_x,
-                      root.Internal.max_y,
-                      root.Internal.max_z);
+  vec3 bb_min = vec3(root.min_x, root.min_y, root.min_z);
+  vec3 bb_max = vec3(root.max_x, root.max_y, root.max_z);
 
   // bail out if no intersection with the outter bounding box
   float outter_tmin, outter_tmax;
-  if( !intersect_box(o, d, bb_min, bb_max, outter_tmin, outter_tmax) ) return NAN;
+  if( !intersect_box(o, d, bb_min, bb_max, outter_tmin, outter_tmax) )
+    return NAN;
 
   std::stack<TraversalElem> stack;
   stack.push( TraversalElem(&root, outter_tmin, outter_tmax, 1) );
@@ -119,13 +129,29 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
     const Node* node = e.n;
     int depth = e.depth;
 
-    // bail out if node is NAN. there's no leaf down here
+    // skip if node is NULL. there's no leaf down here
     if(!node) continue;
 
-    // this is the first leaf intersected by the ray!
     // TODO: return actual intersection point and normal
     // so we can perform some basic shading.
-    if(depth == MAX_DEPTH) return tmin;
+    // This is always the closest leaf (alive or not) intersected
+    // by the ray in this point of the traversal!
+    // We need to check whether this leaf is alive not to return
+    // intersections with empty leaves that might exist. Also, if its
+    // alive, we need to check whether the origin of the ray is inside
+    // this leaf to avoid self-intersections: if the origin is inside
+    // this leaf, just keep searching for further alive leaves.
+    // If we found a leaf which is alive AND our intersection point
+    // is outside it, then we succedeed in finding the closest leaf!
+    // QUESTION: test tmin == 0.0 instead of inside_node? problem due
+    // to precision?
+    if(depth == MAX_DEPTH)
+    {
+      vec3 p = o + d * tmin;
+      if( !node->Leaf.alive || node->inside_node(p) )
+        continue;
+      else return tmin;
+    }
 
     // if we intersect the box, compute
     // the (possibly) inner intersections
@@ -153,8 +179,20 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
     int i = 0, mid_ind = 0;
     while( tlast != tmin )
     {
+      // if our last intersection point was at t = 0,
+      // just stop looking the next intersections (the
+      // t's are ordered, thus everyone from now on
+      // will be negative).
+      if(tlast == 0.0f) break;
+
       //TODO: segfaulting here because i is too big
+      // when the origin of the ray is inside the octree
+      // itself, we'll have negative values of t because
+      // intersections may occur BEHIND the origin.
+      // In these cases we just clamp the value to zero, i.e.
+      // we traverse only the octants in front of the origin.
       float cur = t[i];
+      if( cur < 0.0f ) cur = 0.0f;
 
       // if our current intersection is BEHIND
       // tlast, just skip this and get the next
@@ -208,19 +246,19 @@ float Octree::closest_leaf(const vec3& o, const vec3& d, vec3& normal) const
   };
 
   // --------------------
-  vec3 bb_min = vec3(root.Internal.min_x,
-                      root.Internal.min_y,
-                      root.Internal.min_z);
-  vec3 bb_max = vec3(root.Internal.max_x,
-                      root.Internal.max_y,
-                      root.Internal.max_z);
+  vec3 bb_min = vec3(root.min_x,
+                      root.min_y,
+                      root.min_z);
+  vec3 bb_max = vec3(root.max_x,
+                      root.max_y,
+                      root.max_z);
 
   // bail out if no intersection with the outter bounding box
   // TODO: not computing first intersection gives problems in the cube.obj
   // scene!
   float outter_tmin, outter_tmax;
   if( !intersect_box(o, d, bb_min, bb_max, outter_tmin, outter_tmax) )
-    return -1.0f;
+    return NAN;
 
   std::stack<TraversalElem> stack;
   stack.push( TraversalElem(&root, outter_tmin, outter_tmax, 1) );
@@ -241,7 +279,7 @@ float Octree::closest_leaf(const vec3& o, const vec3& d, vec3& normal) const
     if(depth == MAX_DEPTH)
     {
       normal = e.normal;
-      return tmin;
+      return node->Leaf.alive ? tmin : NAN;
     }
 
     // if we intersect the box, compute
@@ -278,9 +316,11 @@ float Octree::closest_leaf(const vec3& o, const vec3& d, vec3& normal) const
     int i = 0, mid_ind = 0;
     while( tlast != tmin )
     {
+      if( tlast == 0.0f ) break;
+
       //TODO: segfaulting here because i is too big
-      //float cur = t[i];
       TNormal cur = t[i];
+      if(cur.t < 0.0f) cur.t = 0.0f;
 
       // if our current intersection is BEHIND
       // tlast, just skip this and get the next
@@ -314,7 +354,7 @@ float Octree::closest_leaf(const vec3& o, const vec3& d, vec3& normal) const
   }
 
   // if we reached this point, no actual leaf was found
-  return -1.0f;
+  return NAN;
 }
 
 bool Octree::is_inside(const vec3& p) const
@@ -322,7 +362,7 @@ bool Octree::is_inside(const vec3& p) const
   //TODO: there are lots of repeated code here and in
   //add_point(). FUsion both!
   const Node *n = &root;
-  float l = root.Internal.max_x - root.Internal.min_x;
+  float l = root.max_x - root.min_x;
 
   // assert that P is inside the outter bounding box.
   // TODO: do the same for add_point()
@@ -369,23 +409,26 @@ void Octree::add_point(const vec3& p)
       *next = new Node;
 
       // compute bounding box for the new node.
-      (*next)->Internal.min_x = address & 0b100 ? n->Internal.x : n->Internal.min_x;
-      (*next)->Internal.min_y = address & 0b010 ? n->Internal.y : n->Internal.min_y;
-      (*next)->Internal.min_z = address & 0b001 ? n->Internal.z : n->Internal.min_z;
+      (*next)->min_x = address & 0b100 ? n->Internal.x : n->min_x;
+      (*next)->min_y = address & 0b010 ? n->Internal.y : n->min_y;
+      (*next)->min_z = address & 0b001 ? n->Internal.z : n->min_z;
 
-      (*next)->Internal.max_x = ~address & 0b100 ? n->Internal.x : n->Internal.max_x;
-      (*next)->Internal.max_y = ~address & 0b010 ? n->Internal.y : n->Internal.max_y;
-      (*next)->Internal.max_z = ~address & 0b001 ? n->Internal.z : n->Internal.max_z;
+      (*next)->max_x = ~address & 0b100 ? n->Internal.x : n->max_x;
+      (*next)->max_y = ~address & 0b010 ? n->Internal.y : n->max_y;
+      (*next)->max_z = ~address & 0b001 ? n->Internal.z : n->max_z;
 
       // compute splitting point (midpoint)
-      (*next)->Internal.x = ( (*next)->Internal.min_x + (*next)->Internal.max_x ) * 0.5f;
-      (*next)->Internal.y = ( (*next)->Internal.min_y + (*next)->Internal.max_y ) * 0.5f;
-      (*next)->Internal.z = ( (*next)->Internal.min_z + (*next)->Internal.max_z ) * 0.5f;
+      (*next)->Internal.x = ( (*next)->min_x + (*next)->max_x ) * 0.5f;
+      (*next)->Internal.y = ( (*next)->min_y + (*next)->max_y ) * 0.5f;
+      (*next)->Internal.z = ( (*next)->min_z + (*next)->max_z ) * 0.5f;
     }
 
     // descend tree
     n = *next;
   }
 
-  //TODO: do something when we reach leaves
+  // at this point, all nodes (including the leaf itself)
+  // we created and n now points to the leaf. Mark it as
+  // ALIVE.
+  n->Leaf.alive = true;
 }

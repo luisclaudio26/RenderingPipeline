@@ -26,10 +26,13 @@ private:
 
   // voxel rendering
   GraphicPipeline renderer;
+
   VertexShader standard_renderer;
   AmbientOcclusionShader amb_occ;
-  //PassthroughShader passthrough;
-  //RayMarcherShader raymarch;
+
+  PassthroughShader passthrough;
+  RayMarcherShader raymarch;
+
   Framebuffer renderTarget;
 
   void compute_octree();

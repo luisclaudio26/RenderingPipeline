@@ -153,6 +153,19 @@ void Engine::drawContents()
   mat4 proj = mat4::perspective(45.0f, 45.0f, 0.5f, 5.0f);
 
   renderer.set_viewport(viewport);
+
+  /* NOTE: Raytrace voxels
+  vec3 w = -param.cam.look_dir.unit();
+  vec3 u = (param.cam.up.cross(w)).unit();
+  vec3 v = w.cross(u);
+  mat4 inv_view( vec4(u(0), u(1), u(2), 0.0f),
+                  vec4(v(0), v(1), v(2), 0.0f),
+                  vec4(w(0), w(1), w(2), 0.0f),
+                  vec4(param.cam.eye, 1.0f) );
+  renderer.upload_uniform("inv_view", inv_view.data(), 16);
+  renderer.upload_uniform("eye", param.cam.eye.data(), 3);
+  */
+
   renderer.upload_uniform("view", view.data(), 16);
   renderer.upload_uniform("proj", proj.data(), 16);
   renderer.upload_uniform("model", model.data(), 16);
@@ -203,7 +216,8 @@ void Engine::drawContents()
 Engine::Engine(const char* path)
   : nanogui::Screen(Eigen::Vector2i(DEFAULT_WIDTH, DEFAULT_HEIGHT), "NanoGUI Test"),
     buffer_width(DEFAULT_WIDTH), buffer_height(DEFAULT_HEIGHT),
-    amb_occ(OctreeBuilderShader::tree)
+    amb_occ(OctreeBuilderShader::tree),
+    raymarch(OctreeBuilderShader::tree)
 {
   // --------------------------------
   // --------- Scene setup ----------
@@ -271,6 +285,8 @@ Engine::Engine(const char* path)
   gp.set_vertex_shader(standard);
   renderer.set_fragment_shader(amb_occ);
   renderer.set_vertex_shader(standard_renderer);
+  //renderer.set_fragment_shader(raymarch);
+  //renderer.set_vertex_shader(passthrough);
 
   shader.init("passthrough",
 
@@ -313,9 +329,11 @@ Engine::Engine(const char* path)
   gp.define_attribute("pos", 3, 0);
   gp.define_attribute("normal", 3, 3);
 
+
   renderer.upload_data(mesh_data, 6);
   renderer.define_attribute("pos", 3, 0);
   renderer.define_attribute("normal", 3, 3);
+
 
   // NOTE: this is for voxel raytracing only
   // a simple quad so we can invoke the fragment shader for each pixel
@@ -328,7 +346,8 @@ Engine::Engine(const char* path)
   quad.push_back(+1.0f); quad.push_back(+1.0f);
   quad.push_back(-1.0f); quad.push_back(+1.0f);
   renderer.upload_data(quad, 2);
-  renderer.define_attribute("pos", 2, 0); */
+  renderer.define_attribute("pos", 2, 0);
+  */
 
   // upload triangles which we'll use to render the final
   // image and the corresponding texture coordinates

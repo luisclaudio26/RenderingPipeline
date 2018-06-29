@@ -14,18 +14,19 @@
 // the article.
 const int MAX_DEPTH = 7;
 
+/*
 union Node
 {
+  // bounding box
+  float min_x, min_y, min_z;
+  float max_x, max_y, max_z;
+
   struct
   {
     // splitting point of this node.
     // we can't store a vec3, so we do
     // this explicitly as 3 floats.
     float x, y, z;
-
-    // bounding box
-    float min_x, min_y, min_z;
-    float max_x, max_y, max_z;
 
     //Nodes are ordered as follows:
     //
@@ -45,12 +46,59 @@ union Node
 
   struct
   {
-    // TODO: don't know what to put here for the
-    // ambient occlusion case.
-    float x, y, z;
+    // not all leaves within the representation are actually
+    // alive, so we must mark those that are set or not
+    bool alive;
   } Leaf;
 
   unsigned char which_child(const vec3& p) const;
+
+  Node();
+  ~Node();
+}; */
+
+struct Node
+{
+  // bounding box
+  float min_x, min_y, min_z;
+  float max_x, max_y, max_z;
+
+  union
+  {
+    struct
+    {
+      // splitting point of this node.
+      // we can't store a vec3, so we do
+      // this explicitly as 3 floats.
+      float x, y, z;
+
+      //Nodes are ordered as follows:
+      //
+      // l b f
+      // l b b
+      // l u f
+      // l u b
+      // r b f
+      // r b b
+      // r u f
+      // r u b
+      //
+      // So that address 7 = 0b111 is on the
+      // upper-, right-, back- octant.
+      Node* children[8];
+    } Internal;
+
+    struct
+    {
+      // not all leaves within the representation are actually
+      // alive, so we must mark those that are set or not
+      bool alive;
+    } Leaf;
+  };
+
+  //QUESTION: Inline?
+  unsigned char which_child(const vec3& p) const;
+  bool inside_node(const vec3& p) const;
 
   Node();
   ~Node();
