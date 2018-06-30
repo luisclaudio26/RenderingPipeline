@@ -51,7 +51,7 @@ public:
     float kdiff = std::max(0.0f, N.dot(-light_dir));
     float kamb = 0.5f;
     vec3 out = vec3(0.1f, 0.4f, 0.3f)*kamb + vec3(1.0f, 1.0f, 1.0f)*kdiff;
-    //out = out * (1.0f-occlusion);
+    out = out * (1.0f-occlusion);
 
     return rgba(out, 1.0f);
   }

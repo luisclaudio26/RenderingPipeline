@@ -13,7 +13,7 @@
 
 #include "../3rdparty/stb_image_write.h"
 
-const int GRID_RES = 256;
+const int GRID_RES = 512;
 
 void Engine::draw(NVGcontext *ctx)
 {
@@ -223,7 +223,7 @@ Engine::Engine(const char* path)
   // --------- Scene setup ----------
   // --------------------------------
   float angle = 0.0174533f;
-  param.cam.eye = vec3(0.0f, 0.0f, +0.7f);
+  param.cam.eye = vec3(0.0f, 0.0f, 0.7f);
   param.cam.up = vec3(0.0f, 1.0f, 0.0f);
   param.cam.look_dir = vec3(0.0f, 0.0f, -1.0f);
   param.cam.cos_angle = (float)cos(angle);
