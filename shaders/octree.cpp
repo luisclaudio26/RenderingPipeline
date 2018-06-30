@@ -145,7 +145,7 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
     // is outside it, then we succedeed in finding the closest leaf!
     if(depth == MAX_DEPTH)
     {
-      if( !node->Leaf.alive || node->inside_node(o) ) continue;
+      if( !node->Leaf.alive || node->inside_node(o)) continue;
       else return tmin;
     }
 

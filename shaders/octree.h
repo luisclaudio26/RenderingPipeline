@@ -12,50 +12,7 @@
 // make any distinction here. in the end, this is just a
 // basic octree, far from the sparse voxel tree devised in
 // the article.
-const int MAX_DEPTH = 7;
-
-/*
-union Node
-{
-  // bounding box
-  float min_x, min_y, min_z;
-  float max_x, max_y, max_z;
-
-  struct
-  {
-    // splitting point of this node.
-    // we can't store a vec3, so we do
-    // this explicitly as 3 floats.
-    float x, y, z;
-
-    //Nodes are ordered as follows:
-    //
-    // l b f
-    // l b b
-    // l u f
-    // l u b
-    // r b f
-    // r b b
-    // r u f
-    // r u b
-    //
-    // So that address 7 = 0b111 is on the
-    // upper-, right-, back- octant.
-    Node* children[8];
-  } Internal;
-
-  struct
-  {
-    // not all leaves within the representation are actually
-    // alive, so we must mark those that are set or not
-    bool alive;
-  } Leaf;
-
-  unsigned char which_child(const vec3& p) const;
-
-  Node();
-  ~Node();
-}; */
+const int MAX_DEPTH = 8;
 
 struct Node
 {
