@@ -13,7 +13,7 @@
 
 #include "../3rdparty/stb_image_write.h"
 
-const int GRID_RES = 128;
+const int GRID_RES = 4;
 
 void Engine::draw(NVGcontext *ctx)
 {
@@ -385,7 +385,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   if (Screen::keyboardEvent(key, scancode, action, modifiers)) return true;
 
   //camera movement
-  if(key == GLFW_KEY_A && action == GLFW_REPEAT) {
+  if(key == GLFW_KEY_A) {
     param.cam.eye += (-param.cam.right) * param.cam.step;
     if(param.cam.lock_view)
     {
@@ -394,7 +394,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
     }
     return true;
   }
-  if(key == GLFW_KEY_D && action == GLFW_REPEAT) {
+  if(key == GLFW_KEY_D) {
     param.cam.eye += param.cam.right * param.cam.step;
     if(param.cam.lock_view)
     {
@@ -403,17 +403,18 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
     }
     return true;
   }
-  if( key == GLFW_KEY_W && action == GLFW_REPEAT ) {
+
+  if( key == GLFW_KEY_W ) {
     param.cam.eye += param.cam.look_dir * param.cam.step;
     //if(param.cam.param.cam.lock_view) param.cam.look_dir = (vec3(0.0f, 0.0f, 0.0f) - param.cam.eye).unit();
     return true;
   }
-  if( key == GLFW_KEY_S && action == GLFW_REPEAT ) {
+  if( key == GLFW_KEY_S ) {
     param.cam.eye += param.cam.look_dir * (-param.cam.step);
     //if(param.cam.param.cam.lock_view) param.cam.look_dir = (vec3(0.0f, 0.0f, 0.0f) - param.cam.eye).unit();
     return true;
   }
-  if( key == GLFW_KEY_R && action == GLFW_REPEAT ) {
+  if( key == GLFW_KEY_R ) {
     param.cam.eye += param.cam.up * param.cam.step;
     if(param.cam.lock_view)
     {
@@ -423,7 +424,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
 
     return true;
   }
-  if( key == GLFW_KEY_F && action == GLFW_REPEAT ) {
+  if( key == GLFW_KEY_F ) {
     param.cam.eye += (-param.cam.up) * param.cam.step;
     if(param.cam.lock_view)
     {
@@ -434,7 +435,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   }
 
   //TODO: we can precompute sin and cos values!
-  if( key == GLFW_KEY_U && action == GLFW_REPEAT ) {
+  if( key == GLFW_KEY_U ) {
     if(param.cam.lock_view) return true;
 
     vec3 u = param.cam.look_dir, v = param.cam.up;
@@ -443,7 +444,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
 
     return true;
   }
-  if( key == GLFW_KEY_J && action == GLFW_REPEAT ) {
+  if( key == GLFW_KEY_J ) {
     if(param.cam.lock_view) return true;
 
     vec3 u = param.cam.look_dir, v = param.cam.up;
@@ -452,7 +453,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
 
     return true;
   }
-  if( key == GLFW_KEY_K && action == GLFW_REPEAT ) {
+  if( key == GLFW_KEY_K ) {
     if(param.cam.lock_view) return true;
 
     vec3 u = param.cam.right, v = param.cam.look_dir;
@@ -461,7 +462,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
 
     return true;
   }
-  if( key == GLFW_KEY_H && action == GLFW_REPEAT ) {
+  if( key == GLFW_KEY_H ) {
     if(param.cam.lock_view) return true;
 
     vec3 u = param.cam.right, v = param.cam.look_dir;
@@ -472,7 +473,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
   }
 
   //------------
-  if( key == GLFW_KEY_M && action == GLFW_REPEAT ) {
+  if( key == GLFW_KEY_M ) {
     if(param.cam.lock_view) return true;
 
     vec3 u = param.cam.right, v = param.cam.up;
@@ -481,7 +482,7 @@ bool Engine::keyboardEvent(int key, int scancode, int action, int modifiers)
 
     return true;
   }
-  if( key == GLFW_KEY_N && action == GLFW_REPEAT ) {
+  if( key == GLFW_KEY_N ) {
     if(param.cam.lock_view) return true;
 
     vec3 u = param.cam.right, v = param.cam.up;
