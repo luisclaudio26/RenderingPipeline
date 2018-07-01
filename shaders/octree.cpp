@@ -122,6 +122,9 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
   std::stack<TraversalElem> stack;
   stack.push( TraversalElem(&root, outter_tmin, outter_tmax, 1) );
 
+
+  bool EXITED = false;
+
   while( !stack.empty() )
   {
     TraversalElem e = stack.top(); stack.pop();
@@ -130,7 +133,11 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
     int depth = e.depth;
 
     // skip if node is NULL. there's no leaf down here
-    if(!node) continue;
+    if(!node)
+    {
+      EXITED = true;
+      continue;
+    }
 
     // TODO: return actual intersection point and normal
     // so we can perform some basic shading.
@@ -145,7 +152,30 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
     // is outside it, then we succedeed in finding the closest leaf!
     if(depth == MAX_DEPTH)
     {
-      const float L_voxel = 1.0f/128.0f;
+      //NOTE: Although this seems to be effective so to avoid intersection
+      //with neighboring leaves, it may not solve everything. what if we have
+      //the following situation?
+      //
+      // ------------------------------------------------
+      // __      |         |         |         |        |
+      //   o --> |         |         |         |        |
+      //    \____|_________|_________|_________|________|
+      //         |         |         |         |        |
+      //-------------------------------------------------
+      //
+      // When shooting a ray from o in the direction pointed by -->,
+      // not only the neighboring leaf will be alive and should be
+      // considered to occlude the ray, but all other voxels too.
+      // This is quite complicated, because rigourously speaking this
+      // is an intrinsic flaw of discretizing our space, but on the other
+      // hand we can "hotfix" it by forcing a ray to traverse at least
+      // a void voxel before considering any intersection to be valid.
+      //
+      // Is this a valid constraint? Surely is not a beautiful solution,
+      // but may solve two problems easily (self intersections and travelling
+      // inside voxel "tunnels" like that)
+      //
+      const float L_voxel = 1.0f/128.0f; //set this as parameter
       const float over_L = 1.0f/L_voxel;
       const float two_L = 2.0f*L_voxel;
 
@@ -157,9 +187,15 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
                     std::fabs(pY-node->min_y) +
                     std::fabs(pZ-node->min_z);
 
-      if( !node->Leaf.alive || node->inside_node(o) || d_l1 <= two_L) continue;
-      else
-        return tmin;
+      if( !node->Leaf.alive )
+      {
+        EXITED = true;
+        continue;
+      }
+
+
+      if(node->inside_node(o) || !EXITED) continue;
+      else return tmin;
     }
 
     // if we intersect the box, compute

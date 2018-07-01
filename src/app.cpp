@@ -13,7 +13,7 @@
 
 #include "../3rdparty/stb_image_write.h"
 
-const int GRID_RES = 4;
+const int GRID_RES = 128;
 
 void Engine::draw(NVGcontext *ctx)
 {
