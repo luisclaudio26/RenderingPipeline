@@ -10,7 +10,7 @@ private:
   const Octree &tree;
 
   //Theta = 45.0f
-  const float THETA = 20.0f;
+  const float THETA = 45.0f;
   const float TAN_THETA_2 = tan( (PI*THETA*0.5f)/180.0f );
 
 
@@ -36,16 +36,11 @@ public:
     vec3 nr;
     float v = tree.closest_leaf(o_ws, d_ws, nr);
 
-    if( v != v ) return rgba(1.0f, 0.0f, 0.0f, 1.0f);
-    else if (v < 0.0f) return rgba(1.0f, 1.0f, 0.0f, 1.0f);
-    else
-    {
-      printf("%f ", v);
-      return rgba((nr(0)+1.0f)*0.5f,
-                  (nr(1)+1.0f)*0.5f,
-                  (nr(2)+1.0f)*0.5f,
-                  1.0f);
-    }
+    //float v = tree.closest_leaf(o_ws, d_ws);
+    return rgba((nr(0)+1.0f)*0.5f,
+                (nr(1)+1.0f)*0.5f,
+                (nr(2)+1.0f)*0.5f,
+                1.0f);
   }
 };
 

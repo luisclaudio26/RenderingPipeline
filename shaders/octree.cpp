@@ -145,8 +145,21 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
     // is outside it, then we succedeed in finding the closest leaf!
     if(depth == MAX_DEPTH)
     {
-      if( !node->Leaf.alive || node->inside_node(o)) continue;
-      else return tmin;
+      const float L_voxel = 1.0f/128.0f;
+      const float over_L = 1.0f/L_voxel;
+      const float two_L = 2.0f*L_voxel;
+
+      float pX = root.min_x + floor((o(0)-root.min_x)*over_L)*L_voxel;
+      float pY = root.min_y + floor((o(1)-root.min_y)*over_L)*L_voxel;
+      float pZ = root.min_z + floor((o(2)-root.min_z)*over_L)*L_voxel;
+
+      float d_l1 = std::fabs(pX-node->min_x) +
+                    std::fabs(pY-node->min_y) +
+                    std::fabs(pZ-node->min_z);
+
+      if( !node->Leaf.alive || node->inside_node(o) || d_l1 <= two_L) continue;
+      else
+        return tmin;
     }
 
     // if we intersect the box, compute
@@ -274,8 +287,12 @@ float Octree::closest_leaf(const vec3& o, const vec3& d, vec3& normal) const
     // so we can perform some basic shading.
     if(depth == MAX_DEPTH)
     {
-      normal = e.normal;
-      return node->Leaf.alive ? tmin : NAN;
+      if( !node->Leaf.alive || node->inside_node(o)) continue;
+      else
+      {
+        normal = e.normal;
+        return tmin;
+      }
     }
 
     // if we intersect the box, compute

@@ -13,7 +13,7 @@
 
 #include "../3rdparty/stb_image_write.h"
 
-const int GRID_RES = 512;
+const int GRID_RES = 128;
 
 void Engine::draw(NVGcontext *ctx)
 {
@@ -154,7 +154,8 @@ void Engine::drawContents()
 
   renderer.set_viewport(viewport);
 
-  /* NOTE: Raytrace voxels
+  //NOTE: Raytrace voxels
+  /*
   vec3 w = -param.cam.look_dir.unit();
   vec3 u = (param.cam.up.cross(w)).unit();
   vec3 v = w.cross(u);
@@ -329,11 +330,9 @@ Engine::Engine(const char* path)
   gp.define_attribute("pos", 3, 0);
   gp.define_attribute("normal", 3, 3);
 
-
   renderer.upload_data(mesh_data, 6);
   renderer.define_attribute("pos", 3, 0);
   renderer.define_attribute("normal", 3, 3);
-
 
   // NOTE: this is for voxel raytracing only
   // a simple quad so we can invoke the fragment shader for each pixel
