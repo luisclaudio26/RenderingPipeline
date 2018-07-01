@@ -18,7 +18,8 @@ rgba AmbientOcclusionShader::launch(const float* vertex_in, const float* dVdx, i
   else if( d == INFINITY )
     return rgba(1.0f, 0.0f, 0.0f, 1.0f);
   else
-    return rgba(0.0f, 0.0f, 1.0f, 1.0f); */
+    return rgba(0.0f, 0.0f, 1.0f, 1.0f);
+    */
 
   for(int i = 1; i < n_rays; ++i)
   {
@@ -34,6 +35,7 @@ rgba AmbientOcclusionShader::launch(const float* vertex_in, const float* dVdx, i
 
     occlusion_f += 1.0f;
   }
+
 
   // final occlusion level
   // NOTE: Completely black pixels means all shadow

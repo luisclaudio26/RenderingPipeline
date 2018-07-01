@@ -175,9 +175,8 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
       // but may solve two problems easily (self intersections and travelling
       // inside voxel "tunnels" like that)
       //
-      const float L_voxel = 1.0f/128.0f; //set this as parameter
+      const float L_voxel = 3.0f/128.0f; //set this as parameter
       const float over_L = 1.0f/L_voxel;
-      const float two_L = 2.0f*L_voxel;
 
       float pX = root.min_x + floor((o(0)-root.min_x)*over_L)*L_voxel;
       float pY = root.min_y + floor((o(1)-root.min_y)*over_L)*L_voxel;
@@ -193,8 +192,7 @@ float Octree::closest_leaf(const vec3& o, const vec3& d) const
         continue;
       }
 
-
-      if(node->inside_node(o) || !EXITED) continue;
+      if(node->inside_node(o) || !EXITED || d_l1 <= L_voxel) continue;
       else return tmin;
     }
 
