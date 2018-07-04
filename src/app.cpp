@@ -13,7 +13,7 @@
 
 #include "../3rdparty/stb_image_write.h"
 
-const int GRID_RES = 128;
+const int GRID_RES = 512;
 
 void Engine::draw(NVGcontext *ctx)
 {
@@ -231,10 +231,10 @@ Engine::Engine(const char* path)
   param.cam.sin_angle = (float)sin(angle);
   param.cam.right = vec3(1.0f, 0.0f, 0.0f);
   param.cam.step = 0.1f;
-  param.cam.near = 0.5f;
+  param.cam.near = 0.01f;
   param.cam.far = 10.0f;
-  param.cam.FoVy = 45.0f;
-  param.cam.FoVx = 45.0f;
+  param.cam.FoVy = 10.0f;
+  param.cam.FoVx = 10.0f;
   param.cam.lock_view = true;
   param.front_face = GL_CCW;
   param.draw_mode = GL_FILL;
